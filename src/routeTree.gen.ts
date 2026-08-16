@@ -10,33 +10,155 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AdminRouteImport } from './routes/admin'
+import { Route as ChuyenDeRouteImport } from './routes/chuyen-de'
+import { Route as DichVuCongRouteImport } from './routes/dich-vu-cong'
+import { Route as GioiThieuRouteImport } from './routes/gioi-thieu'
+import { Route as KhongGianVanHoaHoChiMinhRouteImport } from './routes/khong-gian-van-hoa-ho-chi-minh'
+import { Route as LienHeRouteImport } from './routes/lien-he'
+import { Route as ThuVienRouteImport } from './routes/thu-vien'
+import { Route as TinTucIndexRouteImport } from './routes/tin-tuc.index'
+import { Route as TinTucSlugRouteImport } from './routes/tin-tuc.$slug'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ChuyenDeRoute = ChuyenDeRouteImport.update({
+  id: '/chuyen-de',
+  path: '/chuyen-de',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DichVuCongRoute = DichVuCongRouteImport.update({
+  id: '/dich-vu-cong',
+  path: '/dich-vu-cong',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GioiThieuRoute = GioiThieuRouteImport.update({
+  id: '/gioi-thieu',
+  path: '/gioi-thieu',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const KhongGianVanHoaHoChiMinhRoute =
+  KhongGianVanHoaHoChiMinhRouteImport.update({
+    id: '/khong-gian-van-hoa-ho-chi-minh',
+    path: '/khong-gian-van-hoa-ho-chi-minh',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const LienHeRoute = LienHeRouteImport.update({
+  id: '/lien-he',
+  path: '/lien-he',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ThuVienRoute = ThuVienRouteImport.update({
+  id: '/thu-vien',
+  path: '/thu-vien',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TinTucIndexRoute = TinTucIndexRouteImport.update({
+  id: '/tin-tuc/',
+  path: '/tin-tuc/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TinTucSlugRoute = TinTucSlugRouteImport.update({
+  id: '/tin-tuc/$slug',
+  path: '/tin-tuc/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
+  '/chuyen-de': typeof ChuyenDeRoute
+  '/dich-vu-cong': typeof DichVuCongRoute
+  '/gioi-thieu': typeof GioiThieuRoute
+  '/khong-gian-van-hoa-ho-chi-minh': typeof KhongGianVanHoaHoChiMinhRoute
+  '/lien-he': typeof LienHeRoute
+  '/thu-vien': typeof ThuVienRoute
+  '/tin-tuc/$slug': typeof TinTucSlugRoute
+  '/tin-tuc/': typeof TinTucIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
+  '/chuyen-de': typeof ChuyenDeRoute
+  '/dich-vu-cong': typeof DichVuCongRoute
+  '/gioi-thieu': typeof GioiThieuRoute
+  '/khong-gian-van-hoa-ho-chi-minh': typeof KhongGianVanHoaHoChiMinhRoute
+  '/lien-he': typeof LienHeRoute
+  '/thu-vien': typeof ThuVienRoute
+  '/tin-tuc/$slug': typeof TinTucSlugRoute
+  '/tin-tuc': typeof TinTucIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
+  '/chuyen-de': typeof ChuyenDeRoute
+  '/dich-vu-cong': typeof DichVuCongRoute
+  '/gioi-thieu': typeof GioiThieuRoute
+  '/khong-gian-van-hoa-ho-chi-minh': typeof KhongGianVanHoaHoChiMinhRoute
+  '/lien-he': typeof LienHeRoute
+  '/thu-vien': typeof ThuVienRoute
+  '/tin-tuc/$slug': typeof TinTucSlugRoute
+  '/tin-tuc/': typeof TinTucIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/admin'
+    | '/chuyen-de'
+    | '/dich-vu-cong'
+    | '/gioi-thieu'
+    | '/khong-gian-van-hoa-ho-chi-minh'
+    | '/lien-he'
+    | '/thu-vien'
+    | '/tin-tuc/$slug'
+    | '/tin-tuc/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/admin'
+    | '/chuyen-de'
+    | '/dich-vu-cong'
+    | '/gioi-thieu'
+    | '/khong-gian-van-hoa-ho-chi-minh'
+    | '/lien-he'
+    | '/thu-vien'
+    | '/tin-tuc/$slug'
+    | '/tin-tuc'
+  id:
+    | '__root__'
+    | '/'
+    | '/admin'
+    | '/chuyen-de'
+    | '/dich-vu-cong'
+    | '/gioi-thieu'
+    | '/khong-gian-van-hoa-ho-chi-minh'
+    | '/lien-he'
+    | '/thu-vien'
+    | '/tin-tuc/$slug'
+    | '/tin-tuc/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AdminRoute: typeof AdminRoute
+  ChuyenDeRoute: typeof ChuyenDeRoute
+  DichVuCongRoute: typeof DichVuCongRoute
+  GioiThieuRoute: typeof GioiThieuRoute
+  KhongGianVanHoaHoChiMinhRoute: typeof KhongGianVanHoaHoChiMinhRoute
+  LienHeRoute: typeof LienHeRoute
+  ThuVienRoute: typeof ThuVienRoute
+  TinTucSlugRoute: typeof TinTucSlugRoute
+  TinTucIndexRoute: typeof TinTucIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +170,83 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/chuyen-de': {
+      id: '/chuyen-de'
+      path: '/chuyen-de'
+      fullPath: '/chuyen-de'
+      preLoaderRoute: typeof ChuyenDeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dich-vu-cong': {
+      id: '/dich-vu-cong'
+      path: '/dich-vu-cong'
+      fullPath: '/dich-vu-cong'
+      preLoaderRoute: typeof DichVuCongRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/gioi-thieu': {
+      id: '/gioi-thieu'
+      path: '/gioi-thieu'
+      fullPath: '/gioi-thieu'
+      preLoaderRoute: typeof GioiThieuRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/khong-gian-van-hoa-ho-chi-minh': {
+      id: '/khong-gian-van-hoa-ho-chi-minh'
+      path: '/khong-gian-van-hoa-ho-chi-minh'
+      fullPath: '/khong-gian-van-hoa-ho-chi-minh'
+      preLoaderRoute: typeof KhongGianVanHoaHoChiMinhRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/lien-he': {
+      id: '/lien-he'
+      path: '/lien-he'
+      fullPath: '/lien-he'
+      preLoaderRoute: typeof LienHeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/thu-vien': {
+      id: '/thu-vien'
+      path: '/thu-vien'
+      fullPath: '/thu-vien'
+      preLoaderRoute: typeof ThuVienRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tin-tuc/': {
+      id: '/tin-tuc/'
+      path: '/tin-tuc'
+      fullPath: '/tin-tuc/'
+      preLoaderRoute: typeof TinTucIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tin-tuc/$slug': {
+      id: '/tin-tuc/$slug'
+      path: '/tin-tuc/$slug'
+      fullPath: '/tin-tuc/$slug'
+      preLoaderRoute: typeof TinTucSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AdminRoute: AdminRoute,
+  ChuyenDeRoute: ChuyenDeRoute,
+  DichVuCongRoute: DichVuCongRoute,
+  GioiThieuRoute: GioiThieuRoute,
+  KhongGianVanHoaHoChiMinhRoute: KhongGianVanHoaHoChiMinhRoute,
+  LienHeRoute: LienHeRoute,
+  ThuVienRoute: ThuVienRoute,
+  TinTucSlugRoute: TinTucSlugRoute,
+  TinTucIndexRoute: TinTucIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

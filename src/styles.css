@@ -4,6 +4,21 @@
 
 @custom-variant dark (&:is(.dark *));
 
+@theme {
+  --font-sans:
+    "Be Vietnam Pro", ui-sans-serif, system-ui, sans-serif;
+  --animate-marquee: marquee 22s linear infinite;
+}
+
+@keyframes marquee {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(-100%);
+  }
+}
+
 /*
  * Design system definition.
  *
@@ -59,29 +74,53 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+  --color-brand: var(--brand);
+  --color-brand-light: var(--brand-light);
+  --color-brand-dark: var(--brand-dark);
+  --color-brand-foreground: var(--brand-foreground);
+  --color-alert: var(--alert);
+  --color-alert-foreground: var(--alert-foreground);
+  --color-gold: var(--gold);
+  --color-cat-vanhoa: var(--cat-vanhoa);
+  --color-cat-thethao: var(--cat-thethao);
+  --color-cat-moitruong: var(--cat-moitruong);
+  --color-cat-dothi: var(--cat-dothi);
+  --color-cat-thongbao: var(--cat-thongbao);
 }
 
 :root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
+  --radius: 0.75rem;
+  --background: oklch(0.985 0.005 240);
   --foreground: oklch(0.129 0.042 264.695);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.129 0.042 264.695);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.129 0.042 264.695);
-  --primary: oklch(0.208 0.042 265.755);
-  --primary-foreground: oklch(0.984 0.003 247.858);
-  --secondary: oklch(0.968 0.007 247.896);
-  --secondary-foreground: oklch(0.208 0.042 265.755);
+  --primary: oklch(0.552 0.234 262.5);
+  --primary-foreground: oklch(1 0 0);
+  --secondary: oklch(0.955 0.02 250);
+  --secondary-foreground: oklch(0.42 0.18 262.5);
   --muted: oklch(0.968 0.007 247.896);
-  --muted-foreground: oklch(0.554 0.046 257.417);
-  --accent: oklch(0.968 0.007 247.896);
-  --accent-foreground: oklch(0.208 0.042 265.755);
+  --muted-foreground: oklch(0.5 0.03 257.417);
+  --accent: oklch(0.95 0.03 250);
+  --accent-foreground: oklch(0.42 0.18 262.5);
   --destructive: oklch(0.577 0.245 27.325);
   --destructive-foreground: oklch(0.984 0.003 247.858);
-  --border: oklch(0.929 0.013 255.508);
+  --border: oklch(0.915 0.015 250);
   --input: oklch(0.929 0.013 255.508);
-  --ring: oklch(0.704 0.04 256.788);
+  --ring: oklch(0.552 0.234 262.5);
+  --brand: oklch(0.552 0.234 262.5);
+  --brand-light: oklch(0.615 0.2 253);
+  --brand-dark: oklch(0.44 0.2 264);
+  --brand-foreground: oklch(1 0 0);
+  --alert: oklch(0.57 0.23 27);
+  --alert-foreground: oklch(1 0 0);
+  --gold: oklch(0.82 0.17 85);
+  --cat-vanhoa: oklch(0.58 0.22 305);
+  --cat-thethao: oklch(0.6 0.2 245);
+  --cat-moitruong: oklch(0.6 0.16 150);
+  --cat-dothi: oklch(0.68 0.19 52);
+  --cat-thongbao: oklch(0.57 0.23 27);
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
@@ -141,4 +180,60 @@
     background-color: var(--color-background);
     color: var(--color-foreground);
   }
+}
+
+/* Bộ hỗ trợ tiếp cận: chế độ tương phản cao Trắng - Đen */
+body.high-contrast {
+  --background: oklch(0 0 0);
+  --foreground: oklch(1 0 0);
+  --card: oklch(0 0 0);
+  --card-foreground: oklch(1 0 0);
+  --popover: oklch(0 0 0);
+  --popover-foreground: oklch(1 0 0);
+  --primary: oklch(0.9 0.19 100);
+  --primary-foreground: oklch(0 0 0);
+  --secondary: oklch(0.15 0 0);
+  --secondary-foreground: oklch(1 0 0);
+  --muted: oklch(0.12 0 0);
+  --muted-foreground: oklch(0.92 0 0);
+  --accent: oklch(0.15 0 0);
+  --accent-foreground: oklch(1 0 0);
+  --border: oklch(1 0 0);
+  --input: oklch(1 0 0);
+  --brand: oklch(0 0 0);
+  --brand-light: oklch(0 0 0);
+  --brand-dark: oklch(0 0 0);
+  --brand-foreground: oklch(0.9 0.19 100);
+  --alert: oklch(0 0 0);
+  --alert-foreground: oklch(0.9 0.19 100);
+  --gold: oklch(0.9 0.19 100);
+  --cat-vanhoa: oklch(0.9 0.19 100);
+  --cat-thethao: oklch(0.9 0.19 100);
+  --cat-moitruong: oklch(0.9 0.19 100);
+  --cat-dothi: oklch(0.9 0.19 100);
+  --cat-thongbao: oklch(0.9 0.19 100);
+}
+
+body.high-contrast img {
+  filter: grayscale(1) contrast(1.25);
+}
+
+@utility hover-zoom {
+  overflow: hidden;
+  & img {
+    transition: transform 0.3s ease;
+  }
+  &:hover img {
+    transform: scale(1.05);
+  }
+}
+
+@utility section-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: -0.01em;
+  color: var(--color-brand);
 }
