@@ -181,3 +181,59 @@
     color: var(--color-foreground);
   }
 }
+
+/* Bộ hỗ trợ tiếp cận: chế độ tương phản cao Trắng - Đen */
+body.high-contrast {
+  --background: oklch(0 0 0);
+  --foreground: oklch(1 0 0);
+  --card: oklch(0 0 0);
+  --card-foreground: oklch(1 0 0);
+  --popover: oklch(0 0 0);
+  --popover-foreground: oklch(1 0 0);
+  --primary: oklch(0.9 0.19 100);
+  --primary-foreground: oklch(0 0 0);
+  --secondary: oklch(0.15 0 0);
+  --secondary-foreground: oklch(1 0 0);
+  --muted: oklch(0.12 0 0);
+  --muted-foreground: oklch(0.92 0 0);
+  --accent: oklch(0.15 0 0);
+  --accent-foreground: oklch(1 0 0);
+  --border: oklch(1 0 0);
+  --input: oklch(1 0 0);
+  --brand: oklch(0 0 0);
+  --brand-light: oklch(0 0 0);
+  --brand-dark: oklch(0 0 0);
+  --brand-foreground: oklch(0.9 0.19 100);
+  --alert: oklch(0 0 0);
+  --alert-foreground: oklch(0.9 0.19 100);
+  --gold: oklch(0.9 0.19 100);
+  --cat-vanhoa: oklch(0.9 0.19 100);
+  --cat-thethao: oklch(0.9 0.19 100);
+  --cat-moitruong: oklch(0.9 0.19 100);
+  --cat-dothi: oklch(0.9 0.19 100);
+  --cat-thongbao: oklch(0.9 0.19 100);
+}
+
+body.high-contrast img {
+  filter: grayscale(1) contrast(1.25);
+}
+
+@utility hover-zoom {
+  overflow: hidden;
+  & img {
+    transition: transform 0.3s ease;
+  }
+  &:hover img {
+    transform: scale(1.05);
+  }
+}
+
+@utility section-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: -0.01em;
+  color: var(--color-brand);
+}
