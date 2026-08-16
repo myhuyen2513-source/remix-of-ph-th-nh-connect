@@ -67,14 +67,6 @@ export function SiteHeader() {
               <LogIn className="size-4" aria-hidden />
               Đăng nhập
             </Link>
-            <button
-              className="inline-flex size-10 items-center justify-center rounded-md border border-border text-brand lg:hidden"
-              onClick={() => setOpen((v) => !v)}
-              aria-label="Mở menu điều hướng"
-              aria-expanded={open}
-            >
-              {open ? <Menu className="size-5" /> : <Menu className="size-5" />}
-            </button>
           </div>
         </div>
       </div>
