@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as ChuyenDeRouteImport } from './routes/chuyen-de'
 import { Route as DichVuCongRouteImport } from './routes/dich-vu-cong'
 import { Route as GioiThieuRouteImport } from './routes/gioi-thieu'
+import { Route as ThuVienRouteImport } from './routes/thu-vien'
 import { Route as TinTucIndexRouteImport } from './routes/tin-tuc.index'
 import { Route as TinTucSlugRouteImport } from './routes/tin-tuc.$slug'
 
@@ -36,6 +37,11 @@ const GioiThieuRoute = GioiThieuRouteImport.update({
   path: '/gioi-thieu',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ThuVienRoute = ThuVienRouteImport.update({
+  id: '/thu-vien',
+  path: '/thu-vien',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TinTucIndexRoute = TinTucIndexRouteImport.update({
   id: '/tin-tuc/',
   path: '/tin-tuc/',
@@ -52,6 +58,7 @@ export interface FileRoutesByFullPath {
   '/chuyen-de': typeof ChuyenDeRoute
   '/dich-vu-cong': typeof DichVuCongRoute
   '/gioi-thieu': typeof GioiThieuRoute
+  '/thu-vien': typeof ThuVienRoute
   '/tin-tuc/$slug': typeof TinTucSlugRoute
   '/tin-tuc/': typeof TinTucIndexRoute
 }
@@ -60,6 +67,7 @@ export interface FileRoutesByTo {
   '/chuyen-de': typeof ChuyenDeRoute
   '/dich-vu-cong': typeof DichVuCongRoute
   '/gioi-thieu': typeof GioiThieuRoute
+  '/thu-vien': typeof ThuVienRoute
   '/tin-tuc/$slug': typeof TinTucSlugRoute
   '/tin-tuc': typeof TinTucIndexRoute
 }
@@ -69,6 +77,7 @@ export interface FileRoutesById {
   '/chuyen-de': typeof ChuyenDeRoute
   '/dich-vu-cong': typeof DichVuCongRoute
   '/gioi-thieu': typeof GioiThieuRoute
+  '/thu-vien': typeof ThuVienRoute
   '/tin-tuc/$slug': typeof TinTucSlugRoute
   '/tin-tuc/': typeof TinTucIndexRoute
 }
@@ -79,6 +88,7 @@ export interface FileRouteTypes {
     | '/chuyen-de'
     | '/dich-vu-cong'
     | '/gioi-thieu'
+    | '/thu-vien'
     | '/tin-tuc/$slug'
     | '/tin-tuc/'
   fileRoutesByTo: FileRoutesByTo
@@ -87,6 +97,7 @@ export interface FileRouteTypes {
     | '/chuyen-de'
     | '/dich-vu-cong'
     | '/gioi-thieu'
+    | '/thu-vien'
     | '/tin-tuc/$slug'
     | '/tin-tuc'
   id:
@@ -95,6 +106,7 @@ export interface FileRouteTypes {
     | '/chuyen-de'
     | '/dich-vu-cong'
     | '/gioi-thieu'
+    | '/thu-vien'
     | '/tin-tuc/$slug'
     | '/tin-tuc/'
   fileRoutesById: FileRoutesById
@@ -104,6 +116,7 @@ export interface RootRouteChildren {
   ChuyenDeRoute: typeof ChuyenDeRoute
   DichVuCongRoute: typeof DichVuCongRoute
   GioiThieuRoute: typeof GioiThieuRoute
+  ThuVienRoute: typeof ThuVienRoute
   TinTucSlugRoute: typeof TinTucSlugRoute
   TinTucIndexRoute: typeof TinTucIndexRoute
 }
@@ -138,6 +151,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GioiThieuRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/thu-vien': {
+      id: '/thu-vien'
+      path: '/thu-vien'
+      fullPath: '/thu-vien'
+      preLoaderRoute: typeof ThuVienRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/tin-tuc/': {
       id: '/tin-tuc/'
       path: '/tin-tuc'
@@ -160,6 +180,7 @@ const rootRouteChildren: RootRouteChildren = {
   ChuyenDeRoute: ChuyenDeRoute,
   DichVuCongRoute: DichVuCongRoute,
   GioiThieuRoute: GioiThieuRoute,
+  ThuVienRoute: ThuVienRoute,
   TinTucSlugRoute: TinTucSlugRoute,
   TinTucIndexRoute: TinTucIndexRoute,
 }
