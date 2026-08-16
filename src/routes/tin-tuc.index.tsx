@@ -4,11 +4,11 @@ import { PageHero } from "@/components/site/PageHero";
 import { PostCard } from "@/components/site/PostCard";
 import { categories, posts } from "@/lib/site-data";
 
-type NewsSearch = { danh_muc?: string };
+type NewsSearch = { danh_muc?: string | undefined };
 
 export const Route = createFileRoute("/tin-tuc/")({
   validateSearch: (search: Record<string, unknown>): NewsSearch => ({
-    danh_muc: typeof search.danh_muc === "string" ? search.danh_muc : undefined,
+    danh_muc: typeof search["danh_muc"] === "string" ? (search["danh_muc"] as string) : undefined,
   }),
   head: () => ({
     meta: [
