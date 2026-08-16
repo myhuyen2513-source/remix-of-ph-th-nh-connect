@@ -9,9 +9,9 @@ export const navItems = [
   { to: "/gioi-thieu", label: "Giới thiệu" },
   { to: "/tin-tuc", label: "Tin tức - Sự kiện" },
   { to: "/dich-vu-cong", label: "Dịch vụ công" },
-  { to: "/chuyen-de", label: "Chuyên đề truyền thông" },
+  { to: "/chuyen-de", label: "Chuyên đề" },
   { to: "/thu-vien", label: "Thư viện truyền thông" },
-  { to: "/khong-gian-van-hoa-ho-chi-minh", label: "KG Văn hóa Hồ Chí Minh" },
+  { to: "/khong-gian-van-hoa-ho-chi-minh", label: "KG Văn hóa HCM" },
   { to: "/lien-he", label: "Liên hệ - Góp ý" },
 ] as const;
 
@@ -95,7 +95,7 @@ export function SiteHeader() {
               <Link
                 key={item.to}
                 to={item.to}
-                className="px-3 py-3.5 text-[13px] font-bold uppercase tracking-tight transition-colors hover:text-gold"
+                className="whitespace-nowrap px-2.5 py-3.5 text-[13px] font-bold uppercase tracking-tight transition-colors hover:text-gold"
                 activeProps={{ className: "text-gold" }}
               >
                 {item.label}

@@ -133,7 +133,7 @@ function Index() {
                     className="flex flex-col gap-2 rounded-lg border border-border p-3"
                   >
                     <h3
-                      className="flex items-center gap-2 text-xs font-bold uppercase"
+                      className="flex items-start gap-2 text-xs font-bold uppercase leading-tight"
                       style={{ color: c.colorVar }}
                     >
                       <span
@@ -142,7 +142,7 @@ function Index() {
                       >
                         <Landmark className="size-4" aria-hidden />
                       </span>
-                      <span className="truncate">{c.name}</span>
+                      <span className="min-w-0">{c.name}</span>
                     </h3>
                     <div className="hover-zoom rounded-lg">
                       <img
