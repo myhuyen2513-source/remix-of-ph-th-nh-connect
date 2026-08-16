@@ -21,7 +21,8 @@ export function UiPrefsProvider({ children }: { children: ReactNode }) {
   const [viewMode, setViewMode] = useState<ViewMode>("desktop");
 
   useEffect(() => {
-    document.documentElement.style.fontSize = `${FONT_STEPS[fontStep] * 16}px`;
+    const scale = FONT_STEPS[fontStep] ?? 1;
+    document.documentElement.style.fontSize = `${scale * 16}px`;
   }, [fontStep]);
 
   useEffect(() => {
