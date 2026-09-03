@@ -1,6 +1,7 @@
 @import "tailwindcss" source(none);
 @source "../src";
 @import "tw-animate-css";
+/* trigger dev server restart */
 
 @custom-variant dark (&:is(.dark *));
 
@@ -237,3 +238,4 @@ body.high-contrast img {
   letter-spacing: -0.01em;
   color: var(--color-brand);
 }
+ 
