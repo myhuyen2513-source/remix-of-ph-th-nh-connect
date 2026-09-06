@@ -2,11 +2,14 @@ import { Link, createFileRoute, notFound } from "@tanstack/react-router";
 import { CalendarDays, Download, FileText, MapPin, Tag, Users } from "lucide-react";
 
 import { PostCard } from "@/components/site/PostCard";
-import { categoryColor, getPost, posts } from "@/lib/site-data";
+import { usePosts } from "@/lib/hooks";
+import { resolveImage } from "@/lib/images";
+import { getPost } from "@/lib/api";
+import type { Attachment } from "@/lib/types";
 
 export const Route = createFileRoute("/tin-tuc/$slug")({
-  loader: ({ params }) => {
-    const post = getPost(params.slug);
+  loader: async ({ params }) => {
+    const post = await getPost(params.slug);
     if (!post) throw notFound();
     return { post };
   },
@@ -32,8 +35,10 @@ export const Route = createFileRoute("/tin-tuc/$slug")({
 
 function PostDetail() {
   const { post } = Route.useLoaderData();
-  const related = posts.filter((p) => p.slug !== post.slug).slice(0, 4);
+  const { data: allPosts } = usePosts();
+  const related = (allPosts ?? []).filter((p) => p.slug !== post.slug).slice(0, 4);
   const mapQuery = encodeURIComponent(post.location ?? "");
+  const attachments = (post.attachments ?? []) as Attachment[];
 
   return (
     <article className="mx-auto w-full max-w-[1600px] px-3 py-6 sm:px-5">
@@ -51,7 +56,7 @@ function PostDetail() {
         <div className="space-y-4 rounded-xl border border-border bg-card p-4 sm:p-6">
           <span
             className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[11px] font-bold uppercase text-brand-foreground"
-            style={{ backgroundColor: categoryColor(post.category) }}
+            style={{ backgroundColor: post.categoryColor ?? "var(--color-brand)" }}
           >
             <Tag className="size-3.5" aria-hidden />
             {post.category}
@@ -75,7 +80,7 @@ function PostDetail() {
           </div>
 
           <img
-            src={post.image}
+            src={resolveImage(post.image)}
             alt={post.title}
             width={1280}
             height={720}
@@ -84,19 +89,19 @@ function PostDetail() {
 
           <div className="space-y-3 text-[15px] leading-relaxed">
             <p className="font-semibold">{post.excerpt}</p>
-            {post.body.map((p) => (
-              <p key={p}>{p}</p>
+            {post.body.map((p, i) => (
+              <p key={i}>{p}</p>
             ))}
           </div>
 
-          {post.attachments && post.attachments.length > 0 && (
+          {attachments.length > 0 && (
             <section className="rounded-xl border border-border p-4">
               <h2 className="section-title mb-3 text-sm">
                 <FileText className="size-4" aria-hidden />
                 Tài liệu đính kèm (xem trực tiếp)
               </h2>
               <ul className="space-y-2">
-                {post.attachments.map((a) => (
+                {attachments.map((a) => (
                   <li
                     key={a.name}
                     className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-muted px-3 py-2 text-xs"

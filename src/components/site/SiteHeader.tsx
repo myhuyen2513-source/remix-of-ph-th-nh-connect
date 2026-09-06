@@ -3,7 +3,7 @@ import { Facebook, Home, LogIn, MapPin, Menu, MessageCircle, Phone, X } from "lu
 import { useState } from "react";
 
 import logo from "@/assets/logo-ttcu.jpg.asset.json";
-import { systemSettings } from "@/lib/site-data";
+import { useSettings } from "@/lib/hooks";
 
 export const navItems = [
   { to: "/gioi-thieu", label: "Giới thiệu" },
@@ -17,6 +17,7 @@ export const navItems = [
 
 export function SiteHeader() {
   const [open, setOpen] = useState(false);
+  const { data: settings } = useSettings();
 
   return (
     <header>
@@ -32,13 +33,13 @@ export function SiteHeader() {
             />
             <div className="min-w-0">
               <p className="truncate text-[11px] font-bold uppercase tracking-wide text-brand sm:text-base">
-                {systemSettings.org_name}
+                {settings?.org_name ?? ""}
               </p>
               <p className="truncate text-lg font-extrabold uppercase text-brand-dark sm:text-2xl">
-                {systemSettings.org_name_2}
+                {settings?.org_name_2 ?? ""}
               </p>
               <p className="truncate text-[11px] font-semibold italic text-cat-dothi sm:text-sm">
-                {systemSettings.slogan}
+                {settings?.slogan ?? ""}
               </p>
             </div>
           </Link>
@@ -47,17 +48,17 @@ export function SiteHeader() {
             <div className="hidden items-start gap-2 text-xs xl:flex">
               <MapPin className="mt-0.5 size-5 shrink-0 text-brand" aria-hidden />
               <span className="font-medium leading-snug">
-                {systemSettings.address}
+                {settings?.address ?? ""}
                 <br />
-                {systemSettings.address_2}
+                {settings?.address_2 ?? ""}
               </span>
             </div>
             <div className="hidden items-start gap-2 text-xs xl:flex">
               <Phone className="mt-0.5 size-5 shrink-0 text-brand" aria-hidden />
               <span className="font-medium leading-snug">
-                {systemSettings.hotline}
+                {settings?.hotline ?? ""}
                 <br />
-                {systemSettings.hotline_note}
+                {settings?.hotline_note ?? ""}
               </span>
             </div>
             <Link
@@ -97,7 +98,7 @@ export function SiteHeader() {
 
           <div className="ml-auto hidden items-center gap-2 py-1.5 lg:flex">
             <a
-              href={systemSettings.facebook_url}
+              href={settings?.facebook_url ?? "#"}
               target="_blank"
               rel="noreferrer"
               className="inline-flex items-center gap-1.5 rounded-full bg-brand-foreground/15 px-3 py-1.5 text-xs font-semibold transition-colors hover:bg-brand-foreground/25"
@@ -106,7 +107,7 @@ export function SiteHeader() {
               Fanpage Facebook
             </a>
             <a
-              href={systemSettings.zalo_url}
+              href={settings?.zalo_url ?? "#"}
               target="_blank"
               rel="noreferrer"
               className="inline-flex items-center gap-1.5 rounded-full bg-brand-foreground/15 px-3 py-1.5 text-xs font-semibold transition-colors hover:bg-brand-foreground/25"

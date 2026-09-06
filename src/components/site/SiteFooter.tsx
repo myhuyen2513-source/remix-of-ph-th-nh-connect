@@ -1,9 +1,11 @@
 import { Facebook, Globe, Mail, MapPin, MessageCircle, Phone } from "lucide-react";
 
 import logo from "@/assets/logo-ttcu.jpg.asset.json";
-import { systemSettings } from "@/lib/site-data";
+import { useSettings } from "@/lib/hooks";
 
 export function SiteFooter() {
+  const { data: settings } = useSettings();
+
   return (
     <footer className="mt-10 bg-brand text-brand-foreground">
       <div className="mx-auto grid w-full max-w-[1600px] gap-6 px-3 py-8 sm:px-5 lg:grid-cols-[minmax(0,1.2fr)_repeat(3,minmax(0,1fr))_auto]">
@@ -17,17 +19,17 @@ export function SiteFooter() {
             className="size-16 shrink-0 rounded-full bg-card object-contain p-0.5"
           />
           <div className="min-w-0">
-            <p className="text-sm font-bold uppercase leading-tight">{systemSettings.org_name}</p>
-            <p className="text-sm font-bold uppercase leading-tight">{systemSettings.org_name_2}</p>
-            <p className="text-xs font-semibold italic text-gold">{systemSettings.slogan}</p>
+            <p className="text-sm font-bold uppercase leading-tight">{settings?.org_name ?? ""}</p>
+            <p className="text-sm font-bold uppercase leading-tight">{settings?.org_name_2 ?? ""}</p>
+            <p className="text-xs font-semibold italic text-gold">{settings?.slogan ?? ""}</p>
           </div>
         </div>
 
         <div className="flex items-start gap-2 text-sm">
           <MapPin className="mt-0.5 size-5 shrink-0" aria-hidden />
           <span>
-            {systemSettings.address},<br />
-            {systemSettings.address_2}
+            {settings?.address ?? ""},<br />
+            {settings?.address_2 ?? ""}
           </span>
         </div>
 
@@ -35,15 +37,15 @@ export function SiteFooter() {
           <p className="flex items-start gap-2">
             <Phone className="mt-0.5 size-5 shrink-0" aria-hidden />
             <span>
-              {systemSettings.hotline}
+              {settings?.hotline ?? ""}
               <br />
-              {systemSettings.hotline_note}
+              {settings?.hotline_note ?? ""}
             </span>
           </p>
           <p className="flex items-start gap-2">
             <Mail className="mt-0.5 size-5 shrink-0" aria-hidden />
-            <a href={`mailto:${systemSettings.email}`} className="hover:text-gold">
-              {systemSettings.email}
+            <a href={`mailto:${settings?.email ?? ""}`} className="hover:text-gold">
+              {settings?.email ?? ""}
             </a>
           </p>
         </div>
@@ -51,7 +53,7 @@ export function SiteFooter() {
         <div className="space-y-3 text-sm">
           <p className="flex items-start gap-2">
             <Globe className="mt-0.5 size-5 shrink-0" aria-hidden />
-            {systemSettings.website}
+            {settings?.website ?? ""}
           </p>
         </div>
 
@@ -59,7 +61,7 @@ export function SiteFooter() {
           <p className="text-sm font-semibold">Kết nối với chúng tôi</p>
           <div className="flex gap-2">
             <a
-              href={systemSettings.facebook_url}
+              href={settings?.facebook_url ?? "#"}
               target="_blank"
               rel="noreferrer"
               aria-label="Fanpage Facebook phường Phú Thạnh"
@@ -68,7 +70,7 @@ export function SiteFooter() {
               <Facebook className="size-5" aria-hidden />
             </a>
             <a
-              href={systemSettings.zalo_url}
+              href={settings?.zalo_url ?? "#"}
               target="_blank"
               rel="noreferrer"
               aria-label="Zalo OA Trung tâm"

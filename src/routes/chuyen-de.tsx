@@ -2,7 +2,8 @@ import { Link, createFileRoute } from "@tanstack/react-router";
 import { ArrowRight } from "lucide-react";
 
 import { PageHero } from "@/components/site/PageHero";
-import { thematics } from "@/lib/site-data";
+import { useThematics } from "@/lib/hooks";
+import { resolveImage } from "@/lib/images";
 
 export const Route = createFileRoute("/chuyen-de")({
   head: () => ({
@@ -24,6 +25,9 @@ export const Route = createFileRoute("/chuyen-de")({
 });
 
 function Thematics() {
+  const { data: thematics } = useThematics();
+  const list = thematics ?? [];
+
   return (
     <>
       <PageHero
@@ -32,14 +36,14 @@ function Thematics() {
       />
 
       <div className="mx-auto grid w-full max-w-[1600px] gap-5 px-3 py-6 sm:px-5 lg:grid-cols-3">
-        {thematics.map((t) => (
+        {list.map((t) => (
           <article
             key={t.slug}
             className="group overflow-hidden rounded-xl border border-border bg-card"
           >
             <div className="hover-zoom">
               <img
-                src={t.image}
+                src={resolveImage(t.image)}
                 alt={t.name}
                 width={1280}
                 height={720}

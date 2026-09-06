@@ -2,7 +2,7 @@ import { Link, createFileRoute } from "@tanstack/react-router";
 import { ArrowRight, Landmark, Search } from "lucide-react";
 
 import { PageHero } from "@/components/site/PageHero";
-import { publicServices } from "@/lib/site-data";
+import { usePublicServices } from "@/lib/hooks";
 
 export const Route = createFileRoute("/dich-vu-cong")({
   head: () => ({
@@ -24,6 +24,9 @@ export const Route = createFileRoute("/dich-vu-cong")({
 });
 
 function Services() {
+  const { data: services } = usePublicServices();
+  const list = services ?? [];
+
   return (
     <>
       <PageHero
@@ -57,7 +60,7 @@ function Services() {
         </section>
 
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          {publicServices.map((s) => (
+          {list.map((s) => (
             <article
               key={s.slug}
               className="flex flex-col gap-3 rounded-xl border border-border bg-card p-5 transition-shadow hover:shadow-lg"

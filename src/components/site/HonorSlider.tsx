@@ -1,16 +1,25 @@
 import { Award, ChevronLeft, ChevronRight } from "lucide-react";
 import { useEffect, useState } from "react";
 
-import { honorSlides } from "@/lib/site-data";
+import { useHonorSlides } from "@/lib/hooks";
+import { resolveImage } from "@/lib/images";
 
 export function HonorSlider() {
+  const { data: slides } = useHonorSlides();
   const [index, setIndex] = useState(0);
-  const total = honorSlides.length;
+  const total = slides?.length ?? 0;
 
   useEffect(() => {
+    if (total <= 1) return;
     const id = setInterval(() => setIndex((i) => (i + 1) % total), 5000);
     return () => clearInterval(id);
   }, [total]);
+
+  useEffect(() => {
+    if (index >= total && total > 0) setIndex(0);
+  }, [index, total]);
+
+  if (!slides || slides.length === 0) return null;
 
   const go = (dir: number) => setIndex((i) => (i + dir + total) % total);
 
@@ -26,13 +35,13 @@ export function HonorSlider() {
             Bảng Vàng Danh Dự
           </span>
           <h2 className="text-2xl font-extrabold leading-tight lg:text-4xl">
-            {honorSlides[index]?.title}
+            {slides[index]?.title}
           </h2>
           <p className="max-w-[52ch] text-sm text-brand-foreground/85 lg:text-base">
-            {honorSlides[index]?.subtitle}
+            {slides[index]?.subtitle}
           </p>
           <div className="flex items-center gap-2">
-            {honorSlides.map((s, i) => (
+            {slides.map((s, i) => (
               <button
                 key={s.id}
                 onClick={() => setIndex(i)}
@@ -49,10 +58,10 @@ export function HonorSlider() {
         </div>
 
         <div className="relative min-h-[220px] lg:min-h-[380px]">
-          {honorSlides.map((s, i) => (
+          {slides.map((s, i) => (
             <img
               key={s.id}
-              src={s.image}
+              src={resolveImage(s.image)}
               alt={s.title}
               width={1280}
               height={720}

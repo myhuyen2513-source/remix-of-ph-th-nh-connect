@@ -1,9 +1,10 @@
 import { Megaphone } from "lucide-react";
 
-import { systemSettings } from "@/lib/site-data";
+import { useSettings } from "@/lib/hooks";
 
 export function AlertMarquee() {
-  if (!systemSettings.is_alert_active) return null;
+  const { data: settings } = useSettings();
+  if (!settings?.is_alert_active) return null;
 
   return (
     <div className="flex items-center gap-2 overflow-hidden bg-alert px-3 py-1.5 text-alert-foreground sm:px-5">
@@ -13,7 +14,7 @@ export function AlertMarquee() {
       </span>
       <div className="relative flex-1 overflow-hidden">
         <p className="animate-marquee whitespace-nowrap text-xs font-semibold">
-          {systemSettings.alert_text}
+          {settings.alert_text}
         </p>
       </div>
     </div>

@@ -2,7 +2,7 @@ import { Link, createFileRoute } from "@tanstack/react-router";
 
 import { PageHero } from "@/components/site/PageHero";
 import { PostCard } from "@/components/site/PostCard";
-import { categories, posts } from "@/lib/site-data";
+import { useCategories, usePosts } from "@/lib/hooks";
 
 type NewsSearch = { danh_muc?: string | undefined };
 
@@ -30,7 +30,12 @@ export const Route = createFileRoute("/tin-tuc/")({
 
 function NewsList() {
   const { danh_muc } = Route.useSearch();
-  const list = danh_muc ? posts.filter((p) => p.category === danh_muc) : posts;
+  const { data: posts } = usePosts();
+  const { data: categories } = useCategories();
+
+  const allPosts = posts ?? [];
+  const cats = categories ?? [];
+  const list = danh_muc ? allPosts.filter((p) => p.category === danh_muc) : allPosts;
 
   return (
     <>
@@ -52,7 +57,7 @@ function NewsList() {
           >
             Tất cả
           </Link>
-          {categories.map((c) => (
+          {cats.map((c) => (
             <Link
               key={c.id}
               to="/tin-tuc"
@@ -62,7 +67,7 @@ function NewsList() {
                   ? "border-transparent text-brand-foreground"
                   : "border-border text-foreground hover:bg-accent"
               }`}
-              style={danh_muc === c.name ? { backgroundColor: c.colorVar } : undefined}
+              style={danh_muc === c.name ? { backgroundColor: c.color_var } : undefined}
             >
               {c.name}
             </Link>

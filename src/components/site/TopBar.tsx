@@ -1,7 +1,7 @@
 import { Clock, Contrast, Monitor, Search, Smartphone } from "lucide-react";
 import { useEffect, useState } from "react";
 
-import { systemSettings } from "@/lib/site-data";
+import { useSettings } from "@/lib/hooks";
 import { useUiPrefs } from "./ui-prefs";
 
 const WEEKDAYS = ["Chủ Nhật", "Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy"];
@@ -23,6 +23,7 @@ function useClock() {
 
 export function TopBar() {
   const clock = useClock();
+  const { data: settings } = useSettings();
   const { fontStep, setFontStep, highContrast, toggleContrast, viewMode, setViewMode } =
     useUiPrefs();
 
@@ -32,7 +33,7 @@ export function TopBar() {
   return (
     <div className="bg-brand text-brand-foreground">
       <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-2 px-3 py-2 text-xs sm:px-5 lg:flex-row lg:items-center lg:justify-between">
-        <p className="font-semibold leading-snug">{systemSettings.welcome_text}</p>
+        <p className="font-semibold leading-snug">{settings?.welcome_text ?? ""}</p>
 
         <div className="flex flex-wrap items-center gap-2">
           <span className="flex items-center gap-1.5 whitespace-nowrap font-medium">

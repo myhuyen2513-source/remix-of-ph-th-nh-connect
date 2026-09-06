@@ -3,7 +3,8 @@ import { FileText, Images, PlayCircle } from "lucide-react";
 import { useState } from "react";
 
 import { PageHero } from "@/components/site/PageHero";
-import { mediaDocuments, mediaImages, mediaVideos } from "@/lib/site-data";
+import { useMediaDocuments, useMediaImages, useMediaVideos } from "@/lib/hooks";
+import { resolveImage } from "@/lib/images";
 
 export const Route = createFileRoute("/thu-vien")({
   head: () => ({
@@ -29,6 +30,14 @@ type Tab = "images" | "videos" | "documents";
 function MediaLibrary() {
   const [tab, setTab] = useState<Tab>("images");
   const [lightbox, setLightbox] = useState<number | null>(null);
+
+  const { data: mediaImages } = useMediaImages();
+  const { data: mediaVideos } = useMediaVideos();
+  const { data: mediaDocuments } = useMediaDocuments();
+
+  const images = mediaImages ?? [];
+  const videos = mediaVideos ?? [];
+  const documents = mediaDocuments ?? [];
 
   const tabs: { id: Tab; label: string; icon: typeof Images }[] = [
     { id: "images", label: "Thư viện hình ảnh", icon: Images },
@@ -64,14 +73,14 @@ function MediaLibrary() {
 
         {tab === "images" && (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {mediaImages.map((m) => (
+            {images.map((m) => (
               <button
                 key={m.id}
                 onClick={() => setLightbox(m.id)}
                 className="hover-zoom group overflow-hidden rounded-xl border border-border bg-card text-left"
               >
                 <img
-                  src={m.image}
+                  src={resolveImage(m.image)}
                   alt={m.title}
                   width={1024}
                   height={576}
@@ -91,12 +100,12 @@ function MediaLibrary() {
 
         {tab === "videos" && (
           <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
-            {mediaVideos.map((v) => (
+            {videos.map((v) => (
               <article key={v.id} className="overflow-hidden rounded-xl border border-border bg-card">
                 <div className="aspect-video w-full bg-muted">
                   <iframe
                     title={v.title}
-                    src={v.embedUrl}
+                    src={v.embed_url}
                     className="size-full"
                     loading="lazy"
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; picture-in-picture"
@@ -116,7 +125,7 @@ function MediaLibrary() {
 
         {tab === "documents" && (
           <ul className="space-y-3">
-            {mediaDocuments.map((d) => (
+            {documents.map((d) => (
               <li
                 key={d.id}
                 className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card p-4"
@@ -155,12 +164,12 @@ function MediaLibrary() {
         >
           <figure className="max-w-4xl">
             <img
-              src={mediaImages.find((m) => m.id === lightbox)?.image}
-              alt={mediaImages.find((m) => m.id === lightbox)?.title ?? ""}
+              src={resolveImage(images.find((m) => m.id === lightbox)?.image ?? "")}
+              alt={images.find((m) => m.id === lightbox)?.title ?? ""}
               className="max-h-[80vh] w-full rounded-xl object-contain"
             />
             <figcaption className="mt-3 text-center text-sm font-semibold text-background">
-              {mediaImages.find((m) => m.id === lightbox)?.title}
+              {images.find((m) => m.id === lightbox)?.title}
             </figcaption>
           </figure>
         </div>

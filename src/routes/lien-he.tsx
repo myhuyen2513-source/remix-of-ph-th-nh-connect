@@ -3,7 +3,7 @@ import { Facebook, Mail, MapPin, MessageCircle, Phone, Send } from "lucide-react
 import { useState } from "react";
 
 import { PageHero } from "@/components/site/PageHero";
-import { systemSettings } from "@/lib/site-data";
+import { useCreateContact, useSettings } from "@/lib/hooks";
 
 export const Route = createFileRoute("/lien-he")({
   head: () => ({
@@ -36,6 +36,16 @@ const topics = [
 
 function Contact() {
   const [sent, setSent] = useState(false);
+  const [form, setForm] = useState({ name: "", phone: "", email: "", topic: topics[0], message: "" });
+  const createMutation = useCreateContact();
+  const { data: settings } = useSettings();
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    createMutation.mutate(form, {
+      onSuccess: () => setSent(true),
+    });
+  };
 
   return (
     <>
@@ -59,24 +69,23 @@ function Contact() {
                 phản ánh, kiến nghị của Trung tâm.
               </p>
               <button
-                onClick={() => setSent(false)}
+                onClick={() => {
+                  setSent(false);
+                  setForm({ name: "", phone: "", email: "", topic: topics[0], message: "" });
+                }}
                 className="mt-3 rounded-full bg-brand px-4 py-1.5 text-xs font-bold text-brand-foreground hover:bg-brand-dark"
               >
                 Gửi nội dung khác
               </button>
             </div>
           ) : (
-            <form
-              className="grid gap-4 sm:grid-cols-2"
-              onSubmit={(e) => {
-                e.preventDefault();
-                setSent(true);
-              }}
-            >
+            <form className="grid gap-4 sm:grid-cols-2" onSubmit={handleSubmit}>
               <label className="space-y-1.5 text-xs font-bold uppercase text-muted-foreground">
                 Họ và tên
                 <input
                   required
+                  value={form.name}
+                  onChange={(e) => setForm({ ...form, name: e.target.value })}
                   className="h-11 w-full rounded-lg border border-border bg-background px-3 text-sm font-normal normal-case text-foreground outline-none focus:ring-2 focus:ring-ring"
                   placeholder="Nguyễn Văn A"
                 />
@@ -85,6 +94,8 @@ function Contact() {
                 Số điện thoại
                 <input
                   required
+                  value={form.phone}
+                  onChange={(e) => setForm({ ...form, phone: e.target.value })}
                   className="h-11 w-full rounded-lg border border-border bg-background px-3 text-sm font-normal normal-case text-foreground outline-none focus:ring-2 focus:ring-ring"
                   placeholder="0901 234 567"
                 />
@@ -93,13 +104,19 @@ function Contact() {
                 Email
                 <input
                   type="email"
+                  value={form.email}
+                  onChange={(e) => setForm({ ...form, email: e.target.value })}
                   className="h-11 w-full rounded-lg border border-border bg-background px-3 text-sm font-normal normal-case text-foreground outline-none focus:ring-2 focus:ring-ring"
                   placeholder="email@example.com"
                 />
               </label>
               <label className="space-y-1.5 text-xs font-bold uppercase text-muted-foreground">
                 Lĩnh vực phản ánh
-                <select className="h-11 w-full rounded-lg border border-border bg-background px-3 text-sm font-normal normal-case text-foreground outline-none focus:ring-2 focus:ring-ring">
+                <select
+                  value={form.topic}
+                  onChange={(e) => setForm({ ...form, topic: e.target.value })}
+                  className="h-11 w-full rounded-lg border border-border bg-background px-3 text-sm font-normal normal-case text-foreground outline-none focus:ring-2 focus:ring-ring"
+                >
                   {topics.map((t) => (
                     <option key={t}>{t}</option>
                   ))}
@@ -110,12 +127,23 @@ function Contact() {
                 <textarea
                   required
                   rows={6}
+                  value={form.message}
+                  onChange={(e) => setForm({ ...form, message: e.target.value })}
                   className="w-full rounded-lg border border-border bg-background p-3 text-sm font-normal normal-case text-foreground outline-none focus:ring-2 focus:ring-ring"
                   placeholder="Mô tả cụ thể nội dung, địa điểm và thời gian xảy ra sự việc..."
                 />
               </label>
-              <button className="h-11 rounded-lg bg-brand px-6 text-sm font-bold text-brand-foreground hover:bg-brand-dark sm:col-span-2">
-                Gửi ý kiến
+              {createMutation.isError && (
+                <p className="text-xs text-destructive sm:col-span-2">
+                  Có lỗi khi gửi. Vui lòng thử lại.
+                </p>
+              )}
+              <button
+                type="submit"
+                disabled={createMutation.isPending}
+                className="h-11 rounded-lg bg-brand px-6 text-sm font-bold text-brand-foreground hover:bg-brand-dark disabled:opacity-50 sm:col-span-2"
+              >
+                {createMutation.isPending ? "Đang gửi..." : "Gửi ý kiến"}
               </button>
             </form>
           )}
@@ -127,24 +155,24 @@ function Contact() {
             <p className="flex items-start gap-2">
               <MapPin className="mt-0.5 size-5 shrink-0 text-brand" aria-hidden />
               <span>
-                {systemSettings.address}, {systemSettings.address_2}
+                {settings?.address ?? ""}, {settings?.address_2 ?? ""}
               </span>
             </p>
             <p className="flex items-start gap-2">
               <Phone className="mt-0.5 size-5 shrink-0 text-brand" aria-hidden />
               <span>
-                {systemSettings.hotline} {systemSettings.hotline_note}
+                {settings?.hotline ?? ""} {settings?.hotline_note ?? ""}
               </span>
             </p>
             <p className="flex items-start gap-2">
               <Mail className="mt-0.5 size-5 shrink-0 text-brand" aria-hidden />
-              <a href={`mailto:${systemSettings.email}`} className="text-brand hover:underline">
-                {systemSettings.email}
+              <a href={`mailto:${settings?.email ?? ""}`} className="text-brand hover:underline">
+                {settings?.email ?? ""}
               </a>
             </p>
             <div className="flex gap-2 pt-1">
               <a
-                href={systemSettings.facebook_url}
+                href={settings?.facebook_url ?? "#"}
                 target="_blank"
                 rel="noreferrer"
                 className="inline-flex items-center gap-1.5 rounded-full bg-brand px-3 py-1.5 text-xs font-bold text-brand-foreground hover:bg-brand-dark"
@@ -153,7 +181,7 @@ function Contact() {
                 Fanpage
               </a>
               <a
-                href={systemSettings.zalo_url}
+                href={settings?.zalo_url ?? "#"}
                 target="_blank"
                 rel="noreferrer"
                 className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs font-bold hover:bg-accent"
@@ -167,7 +195,7 @@ function Contact() {
           <iframe
             title="Bản đồ trụ sở Trung tâm Cung ứng dịch vụ công phường Phú Thạnh"
             src={`https://www.google.com/maps?q=${encodeURIComponent(
-              `${systemSettings.address}, ${systemSettings.address_2}`,
+              `${settings?.address ?? ""}, ${settings?.address_2 ?? ""}`,
             )}&output=embed`}
             className="h-80 w-full rounded-xl border border-border"
             loading="lazy"

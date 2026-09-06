@@ -1,7 +1,8 @@
 import { Link } from "@tanstack/react-router";
 import { CalendarDays, MapPin } from "lucide-react";
 
-import { categoryColor, type Post } from "@/lib/site-data";
+import { resolveImage } from "@/lib/images";
+import type { Post } from "@/lib/types";
 
 export function PostCard({ post }: { post: Post }) {
   return (
@@ -9,7 +10,7 @@ export function PostCard({ post }: { post: Post }) {
       <Link to="/tin-tuc/$slug" params={{ slug: post.slug }} className="block">
         <div className="hover-zoom relative">
           <img
-            src={post.image}
+            src={resolveImage(post.image)}
             alt={post.title}
             width={1024}
             height={576}
@@ -18,7 +19,7 @@ export function PostCard({ post }: { post: Post }) {
           />
           <span
             className="absolute left-3 top-3 rounded-md px-2 py-1 text-[11px] font-bold uppercase text-brand-foreground"
-            style={{ backgroundColor: categoryColor(post.category) }}
+            style={{ backgroundColor: post.categoryColor ?? "var(--color-brand)" }}
           >
             {post.category}
           </span>

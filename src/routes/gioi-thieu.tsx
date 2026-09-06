@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Building2, ClipboardList, Users } from "lucide-react";
 
 import { PageHero } from "@/components/site/PageHero";
-import { systemSettings } from "@/lib/site-data";
+import { useSettings } from "@/lib/hooks";
 
 export const Route = createFileRoute("/gioi-thieu")({
   head: () => ({
@@ -46,6 +46,8 @@ const structure = [
 ];
 
 function About() {
+  const { data: settings } = useSettings();
+
   return (
     <>
       <PageHero
@@ -61,9 +63,9 @@ function About() {
           </h2>
           <div className="space-y-3 text-[15px] leading-relaxed">
             <p>
-              {systemSettings.org_name} {systemSettings.org_name_2} là đơn vị sự nghiệp công lập
+              {settings?.org_name ?? ""} {settings?.org_name_2 ?? ""} là đơn vị sự nghiệp công lập
               trực thuộc Ủy ban nhân dân phường Phú Thạnh, Thành phố Hồ Chí Minh, hoạt động với
-              phương châm <strong>“{systemSettings.slogan}”</strong>.
+              phương châm <strong>“{settings?.slogan ?? ""}”</strong>.
             </p>
             <p>
               Trung tâm tổ chức thực hiện các dịch vụ công trên các lĩnh vực văn hóa - du lịch; thể
@@ -72,8 +74,8 @@ function About() {
               của Ủy ban nhân dân phường.
             </p>
             <p>
-              Trụ sở: {systemSettings.address}, {systemSettings.address_2}. Điện thoại:{" "}
-              {systemSettings.hotline} {systemSettings.hotline_note}. Email: {systemSettings.email}.
+              Trụ sở: {settings?.address ?? ""}, {settings?.address_2 ?? ""}. Điện thoại:{" "}
+              {settings?.hotline ?? ""} {settings?.hotline_note ?? ""}. Email: {settings?.email ?? ""}.
             </p>
           </div>
 

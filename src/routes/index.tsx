@@ -19,7 +19,8 @@ import { HonorSlider } from "@/components/site/HonorSlider";
 import { MiniCalendar } from "@/components/site/MiniCalendar";
 import { PollBox } from "@/components/site/PollBox";
 import { PostCard } from "@/components/site/PostCard";
-import { categories, events, posts, systemSettings } from "@/lib/site-data";
+import { useCategories, useEvents, usePosts, useSettings } from "@/lib/hooks";
+import { resolveImage } from "@/lib/images";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -59,8 +60,16 @@ const mediaShortcuts = [
 ];
 
 function Index() {
-  const featured = posts.filter((p) => p.featured);
-  const latest = posts.slice(0, 4);
+  const { data: posts } = usePosts();
+  const { data: categories } = useCategories();
+  const { data: events } = useEvents();
+  const { data: settings } = useSettings();
+
+  const allPosts = posts ?? [];
+  const featured = allPosts.filter((p) => p.featured);
+  const latest = allPosts.slice(0, 4);
+  const cats = categories ?? [];
+  const eventList = events ?? [];
 
   return (
     <>
@@ -80,37 +89,41 @@ function Index() {
                   Xem tất cả
                 </Link>
               </div>
-              <ul className="divide-y divide-border">
-                {featured.map((p) => (
-                  <li key={p.id} className="py-3 first:pt-0 last:pb-0">
-                    <Link
-                      to="/tin-tuc/$slug"
-                      params={{ slug: p.slug }}
-                      className="group flex gap-3"
-                    >
-                      <div className="hover-zoom w-28 shrink-0 rounded-lg">
-                        <img
-                          src={p.image}
-                          alt={p.title}
-                          width={224}
-                          height={144}
-                          loading="lazy"
-                          className="aspect-[14/9] w-full rounded-lg object-cover"
-                        />
-                      </div>
-                      <div className="min-w-0">
-                        <h3 className="line-clamp-3 text-sm font-semibold leading-snug group-hover:text-brand">
-                          {p.title}
-                        </h3>
-                        <p className="mt-1 flex items-center gap-1 text-[11px] text-muted-foreground">
-                          <CalendarDays className="size-3.5" aria-hidden />
-                          {p.date}
-                        </p>
-                      </div>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
+              {featured.length === 0 ? (
+                <p className="py-4 text-sm text-muted-foreground">Chưa có tin nổi bật.</p>
+              ) : (
+                <ul className="divide-y divide-border">
+                  {featured.map((p) => (
+                    <li key={p.id} className="py-3 first:pt-0 last:pb-0">
+                      <Link
+                        to="/tin-tuc/$slug"
+                        params={{ slug: p.slug }}
+                        className="group flex gap-3"
+                      >
+                        <div className="hover-zoom w-28 shrink-0 rounded-lg">
+                          <img
+                            src={resolveImage(p.image)}
+                            alt={p.title}
+                            width={224}
+                            height={144}
+                            loading="lazy"
+                            className="aspect-[14/9] w-full rounded-lg object-cover"
+                          />
+                        </div>
+                        <div className="min-w-0">
+                          <h3 className="line-clamp-3 text-sm font-semibold leading-snug group-hover:text-brand">
+                            {p.title}
+                          </h3>
+                          <p className="mt-1 flex items-center gap-1 text-[11px] text-muted-foreground">
+                            <CalendarDays className="size-3.5" aria-hidden />
+                            {p.date}
+                          </p>
+                        </div>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </section>
 
             <section className="rounded-xl border border-border bg-card p-4">
@@ -127,18 +140,18 @@ function Index() {
                 </Link>
               </div>
               <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                {categories.slice(0, 4).map((c) => (
+                {cats.slice(0, 4).map((c) => (
                   <article
                     key={c.id}
                     className="flex flex-col gap-2 rounded-lg border border-border p-3"
                   >
                     <h3
                       className="flex items-start gap-2 text-xs font-bold uppercase leading-tight"
-                      style={{ color: c.colorVar }}
+                      style={{ color: c.color_var }}
                     >
                       <span
                         className="inline-flex size-7 shrink-0 items-center justify-center rounded-lg text-brand-foreground"
-                        style={{ backgroundColor: c.colorVar }}
+                        style={{ backgroundColor: c.color_var }}
                       >
                         <Landmark className="size-4" aria-hidden />
                       </span>
@@ -146,7 +159,7 @@ function Index() {
                     </h3>
                     <div className="hover-zoom rounded-lg">
                       <img
-                        src={c.image}
+                        src={resolveImage(c.image)}
                         alt={c.name}
                         width={640}
                         height={360}
@@ -166,7 +179,7 @@ function Index() {
                       to="/tin-tuc"
                       search={{ danh_muc: c.name }}
                       className="mt-auto inline-flex w-fit items-center gap-1 rounded-full px-3 py-1 text-[11px] font-bold text-brand-foreground"
-                      style={{ backgroundColor: c.colorVar }}
+                      style={{ backgroundColor: c.color_var }}
                     >
                       Xem thêm
                       <ArrowRight className="size-3" aria-hidden />
@@ -238,7 +251,7 @@ function Index() {
               </h2>
               <div className="grid gap-3 sm:grid-cols-2">
                 <a
-                  href={systemSettings.facebook_url}
+                  href={settings?.facebook_url ?? "#"}
                   target="_blank"
                   rel="noreferrer"
                   className="flex items-center gap-3 rounded-lg border border-border p-3 transition-colors hover:bg-accent"
@@ -252,7 +265,7 @@ function Index() {
                   </span>
                 </a>
                 <a
-                  href={systemSettings.zalo_url}
+                  href={settings?.zalo_url ?? "#"}
                   target="_blank"
                   rel="noreferrer"
                   className="flex items-center gap-3 rounded-lg border border-border p-3 transition-colors hover:bg-accent"
@@ -266,7 +279,7 @@ function Index() {
                   </span>
                 </a>
                 <a
-                  href={systemSettings.dvc_url}
+                  href={settings?.dvc_url ?? "#"}
                   target="_blank"
                   rel="noreferrer"
                   className="flex items-center gap-3 rounded-lg border border-border p-3 transition-colors hover:bg-accent"
@@ -278,7 +291,7 @@ function Index() {
                   </span>
                 </a>
                 <a
-                  href={systemSettings.ubnd_url}
+                  href={settings?.ubnd_url ?? "#"}
                   target="_blank"
                   rel="noreferrer"
                   className="flex items-center gap-3 rounded-lg border border-border p-3 transition-colors hover:bg-accent"
@@ -307,7 +320,7 @@ function Index() {
               </Link>
             </div>
             <ul className="space-y-3">
-              {events.map((e) => (
+              {eventList.map((e) => (
                 <li key={e.id} className="flex gap-3 rounded-lg border border-border p-2.5">
                   <div className="flex size-14 shrink-0 flex-col items-center justify-center rounded-lg bg-brand text-brand-foreground">
                     <span className="text-lg font-extrabold leading-none">{e.day}</span>
@@ -342,7 +355,7 @@ function Index() {
                   Quét mã QR để quan tâm Zalo OA, hoặc truy cập nhanh Fanpage của phường.
                 </p>
                 <a
-                  href={systemSettings.facebook_url}
+                  href={settings?.facebook_url ?? "#"}
                   target="_blank"
                   rel="noreferrer"
                   className="inline-flex items-center gap-1.5 rounded-full bg-brand px-3 py-1.5 font-bold text-brand-foreground hover:bg-brand-dark"

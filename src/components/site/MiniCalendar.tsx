@@ -1,19 +1,22 @@
 import { CalendarDays } from "lucide-react";
 
-import { events } from "@/lib/site-data";
+import { useEvents } from "@/lib/hooks";
 
 const MONTH = 6;
 const YEAR = 2026;
 const WEEK = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"];
 
 export function MiniCalendar() {
-  const firstDay = new Date(YEAR, MONTH - 1, 1).getDay(); // 0 = CN
+  const { data: events } = useEvents();
+  const firstDay = new Date(YEAR, MONTH - 1, 1).getDay();
   const lead = (firstDay + 6) % 7;
   const daysInMonth = new Date(YEAR, MONTH, 0).getDate();
   const cells = [
     ...Array.from({ length: lead }, () => null),
     ...Array.from({ length: daysInMonth }, (_, i) => i + 1),
   ];
+
+  const eventList = events ?? [];
 
   return (
     <div className="rounded-xl border border-border bg-card p-4">
@@ -28,7 +31,7 @@ export function MiniCalendar() {
       </div>
       <div className="mt-1 grid grid-cols-7 gap-1 text-center text-xs">
         {cells.map((day, i) => {
-          const ev = events.find((e) => e.day === day && e.month === MONTH);
+          const ev = eventList.find((e) => e.day === day && e.month === MONTH);
           if (day === null) return <span key={`e-${i}`} />;
           return (
             <span
