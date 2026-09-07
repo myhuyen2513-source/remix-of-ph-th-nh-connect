@@ -33,7 +33,8 @@ CREATE TABLE IF NOT EXISTS system_settings (
     ubnd_url     TEXT NOT NULL DEFAULT '',
     alert_text   TEXT NOT NULL DEFAULT '',
     is_alert_active BOOLEAN NOT NULL DEFAULT FALSE,
-    welcome_text TEXT NOT NULL DEFAULT '',
+    welcome_text   TEXT NOT NULL DEFAULT '',
+    admin_password TEXT NOT NULL DEFAULT 'admin123',
     CONSTRAINT single_row CHECK (id = 1)
 );
 
@@ -175,8 +176,8 @@ CREATE TABLE IF NOT EXISTS contacts (
  * Dữ liệu mẫu ban đầu — chạy sau khi tạo schema.
  */
 export const SEED_SQL = /* sql */ `
-INSERT INTO system_settings (id, org_name, org_name_2, slogan, hotline, hotline_note, email, website, address, address_2, facebook_url, zalo_url, dvc_url, ubnd_url, alert_text, is_alert_active, welcome_text)
-VALUES (1, 'Trung tâm Cung ứng dịch vụ công', 'Phường Phú Thạnh', 'Tận tâm phục vụ - Kết nối phát triển', '028 3979 7935', '(Giờ hành chính)', 'ttcudvcphuthanh@tphcm.gov.vn', 'ttcudvcphuthanh.gov.vn', '151 Lũy Bán Bích, Phường Phú Thạnh', 'Thành phố Hồ Chí Minh', 'https://www.facebook.com/', 'https://zalo.me/', 'https://dichvucong.gov.vn/', 'https://tphcm.gov.vn/', 'THÔNG BÁO KHẨN: Điều chỉnh lịch tiếp nhận hồ sơ tại Trung tâm trong thời gian bảo trì hệ thống, từ ngày 20/6/2026 đến 22/6/2026 — Người dân vui lòng liên hệ hotline 028 3979 7935 để được hướng dẫn.', TRUE, 'Chào mừng bạn đến với Website Trung tâm Cung ứng dịch vụ công phường Phú Thạnh')
+INSERT INTO system_settings (id, org_name, org_name_2, slogan, hotline, hotline_note, email, website, address, address_2, facebook_url, zalo_url, dvc_url, ubnd_url, alert_text, is_alert_active, welcome_text, admin_password)
+VALUES (1, 'Trung tâm Cung ứng dịch vụ công', 'Phường Phú Thạnh', 'Tận tâm phục vụ - Kết nối phát triển', '028 3979 7935', '(Giờ hành chính)', 'ttcudvcphuthanh@tphcm.gov.vn', 'ttcudvcphuthanh.gov.vn', '151 Lũy Bán Bích, Phường Phú Thạnh', 'Thành phố Hồ Chí Minh', 'https://www.facebook.com/', 'https://zalo.me/', 'https://dichvucong.gov.vn/', 'https://tphcm.gov.vn/', 'THÔNG BÁO KHẨN: Điều chỉnh lịch tiếp nhận hồ sơ tại Trung tâm trong thời gian bảo trì hệ thống, từ ngày 20/6/2026 đến 22/6/2026 — Người dân vui lòng liên hệ hotline 028 3979 7935 để được hướng dẫn.', TRUE, 'Chào mừng bạn đến với Website Trung tâm Cung ứng dịch vụ công phường Phú Thạnh', 'admin123')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO categories (id, slug, name, color_var, bullets, image) VALUES

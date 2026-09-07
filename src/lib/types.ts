@@ -16,6 +16,7 @@ export interface SystemSettings {
   alert_text: string;
   is_alert_active: boolean;
   welcome_text: string;
+  admin_password: string;
 }
 
 export interface Category {

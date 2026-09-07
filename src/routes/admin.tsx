@@ -95,8 +95,69 @@ const tabs: { id: Tab; label: string; icon: typeof Settings }[] = [
   { id: "contacts", label: "Góp ý", icon: Users },
 ];
 
+function LoginGate({ onSuccess }: { onSuccess: () => void }) {
+  const { data: settings } = useSettings();
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState(false);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (settings && password === settings.admin_password) {
+      sessionStorage.setItem("ttcudvc_admin", "1");
+      onSuccess();
+    } else {
+      setError(true);
+    }
+  };
+
+  return (
+    <div className="flex min-h-[70vh] items-center justify-center px-4">
+      <form
+        onSubmit={handleSubmit}
+        className="w-full max-w-sm space-y-4 rounded-xl border border-border bg-card p-6"
+      >
+        <div className="text-center">
+          <h1 className="text-xl font-extrabold text-brand">Đăng nhập quản trị</h1>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Vui lòng nhập mật khẩu để truy cập trang quản trị nội dung.
+          </p>
+        </div>
+        <Label>
+          Mật khẩu
+          <Input
+            type="password"
+            value={password}
+            onChange={(e) => {
+              setPassword(e.target.value);
+              setError(false);
+            }}
+            autoFocus
+            placeholder="••••••••"
+          />
+        </Label>
+        {error && (
+          <p className="text-xs font-bold text-destructive">
+            Mật khẩu không đúng. Vui lòng thử lại.
+          </p>
+        )}
+        <BtnPrimary type="submit" className="w-full" disabled={!settings}>
+          {settings ? "Đăng nhập" : "Đang tải..."}
+        </BtnPrimary>
+        <Link to="/" className="block text-center text-xs text-muted-foreground hover:underline">
+          ← Quay lại trang chủ
+        </Link>
+      </form>
+    </div>
+  );
+}
+
 function AdminPanel() {
   const [tab, setTab] = useState<Tab>("settings");
+  const [authed, setAuthed] = useState(() => sessionStorage.getItem("ttcudvc_admin") === "1");
+
+  if (!authed) {
+    return <LoginGate onSuccess={() => setAuthed(true)} />;
+  }
 
   return (
     <div className="mx-auto w-full max-w-[1600px] px-3 py-6 sm:px-5">
@@ -106,6 +167,15 @@ function AdminPanel() {
         </Link>
         <ChevronRight className="size-3.5" aria-hidden />
         <span className="font-bold">Quản trị nội dung</span>
+        <button
+          onClick={() => {
+            sessionStorage.removeItem("ttcudvc_admin");
+            setAuthed(false);
+          }}
+          className="ml-auto text-xs font-bold text-muted-foreground hover:text-destructive"
+        >
+          Đăng xuất
+        </button>
       </div>
 
       <h1 className="mb-4 text-2xl font-extrabold text-brand">Bảng điều khiển quản trị</h1>
@@ -299,6 +369,30 @@ function SettingsPanel() {
           {updateMutation.isPending ? "Đang lưu..." : "Lưu thay đổi"}
         </BtnPrimary>
         {saved && <span className="text-xs font-semibold text-cat-moitruong">Đã lưu!</span>}
+      </div>
+
+      <div className="mt-6 border-t border-border pt-4">
+        <h3 className="mb-2 text-sm font-bold text-brand">Đổi mật khẩu quản trị</h3>
+        <div className="flex flex-wrap items-end gap-3">
+          <Label>
+            Mật khẩu mới
+            <Input
+              type="password"
+              value={form.admin_password ?? ""}
+              onChange={(e) => setForm({ ...form, admin_password: e.target.value })}
+              placeholder="••••••••"
+            />
+          </Label>
+          <BtnPrimary
+            onClick={() => {
+              if (!form.admin_password) return;
+              updateMutation.mutate({ admin_password: form.admin_password }, { onSuccess: () => setSaved(true) });
+            }}
+            disabled={updateMutation.isPending || !form.admin_password}
+          >
+            Đổi mật khẩu
+          </BtnPrimary>
+        </div>
       </div>
     </PanelCard>
   );
