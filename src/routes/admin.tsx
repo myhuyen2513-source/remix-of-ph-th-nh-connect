@@ -810,7 +810,7 @@ function ServicesPanel() {
           <li key={s.id} className="flex items-center gap-3 rounded-lg border border-border p-3">
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-semibold">{s.name}</p>
-              <p className="truncate text-xs text-muted-foreground">{s.desc}</p>
+              <p className="truncate text-xs text-muted-foreground">{s.description}</p>
             </div>
             <button onClick={() => setEditing(s.id)} className="rounded-lg border border-border px-3 py-1.5 text-xs font-bold hover:bg-accent">
               Sửa
@@ -837,7 +837,7 @@ function ServiceEditModal({ serviceId, onClose }: { serviceId: number | null; on
   const [form, setForm] = useState({
     slug: existing?.slug ?? "",
     name: existing?.name ?? "",
-    desc: existing?.desc ?? "",
+    description: existing?.description ?? "",
   });
 
   const handleSubmit = () => {
@@ -861,7 +861,7 @@ function ServiceEditModal({ serviceId, onClose }: { serviceId: number | null; on
         </Label>
         <Label>
           Mô tả
-          <TextArea rows={3} value={form.desc} onChange={(e) => setForm({ ...form, desc: e.target.value })} />
+          <TextArea rows={3} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
         </Label>
       </div>
       <div className="mt-4 flex gap-2">
@@ -898,7 +898,7 @@ function ThematicsPanel() {
             <img src={resolveImage(t.image)} alt={t.name} className="size-12 shrink-0 rounded-lg object-cover" />
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-semibold">{t.name}</p>
-              <p className="truncate text-xs text-muted-foreground">{t.desc}</p>
+              <p className="truncate text-xs text-muted-foreground">{t.description}</p>
             </div>
             <button onClick={() => setEditing(t.id)} className="rounded-lg border border-border px-3 py-1.5 text-xs font-bold hover:bg-accent">
               Sửa
@@ -925,7 +925,7 @@ function ThematicEditModal({ thematicId, onClose }: { thematicId: number | null;
   const [form, setForm] = useState({
     slug: existing?.slug ?? "",
     name: existing?.name ?? "",
-    desc: existing?.desc ?? "",
+    description: existing?.description ?? "",
     image: existing?.image ?? "",
   });
 
@@ -954,7 +954,7 @@ function ThematicEditModal({ thematicId, onClose }: { thematicId: number | null;
         </Label>
         <Label>
           Mô tả
-          <TextArea rows={3} value={form.desc} onChange={(e) => setForm({ ...form, desc: e.target.value })} />
+          <TextArea rows={3} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
         </Label>
       </div>
       <div className="mt-4 flex gap-2">

@@ -1,41 +1,49 @@
-import { Link, createFileRoute, notFound } from "@tanstack/react-router";
+import { Link, createFileRoute } from "@tanstack/react-router";
 import { CalendarDays, Download, FileText, MapPin, Tag, Users } from "lucide-react";
 
 import { PostCard } from "@/components/site/PostCard";
 import { usePosts } from "@/lib/hooks";
 import { resolveImage } from "@/lib/images";
-import { getPost } from "@/lib/api";
 import type { Attachment } from "@/lib/types";
 
 export const Route = createFileRoute("/tin-tuc/$slug")({
-  loader: async ({ params }) => {
-    const post = await getPost(params.slug);
-    if (!post) throw notFound();
-    return { post };
-  },
-  head: ({ loaderData }) => {
-    if (!loaderData) {
-      return {
-        meta: [{ title: "Không tìm thấy bài viết" }, { name: "robots", content: "noindex" }],
-      };
-    }
-    const { post } = loaderData;
-    return {
-      meta: [
-        { title: `${post.title} | Trung tâm Cung ứng dịch vụ công phường Phú Thạnh` },
-        { name: "description", content: post.excerpt },
-        { property: "og:title", content: post.title },
-        { property: "og:description", content: post.excerpt },
-        { property: "og:type", content: "article" },
-      ],
-    };
-  },
+  head: () => ({
+    meta: [
+      { title: "Tin tức - Sự kiện | Trung tâm Cung ứng dịch vụ công phường Phú Thạnh" },
+      {
+        name: "description",
+        content:
+          "Tin bài, tin video, phóng sự ảnh phản ánh các hoạt động nổi bật trên địa bàn phường Phú Thạnh.",
+      },
+    ],
+  }),
   component: PostDetail,
 });
 
 function PostDetail() {
-  const { post } = Route.useLoaderData();
-  const { data: allPosts } = usePosts();
+  const { slug } = Route.useParams();
+  const { data: allPosts, isLoading } = usePosts();
+  const post = (allPosts ?? []).find((p) => p.slug === slug);
+
+  if (isLoading) {
+    return (
+      <div className="mx-auto w-full max-w-[1600px] px-3 py-6 sm:px-5">
+        <p className="text-sm text-muted-foreground">Đang tải bài viết...</p>
+      </div>
+    );
+  }
+
+  if (!post) {
+    return (
+      <div className="mx-auto w-full max-w-[1600px] px-3 py-6 sm:px-5">
+        <p className="text-sm text-muted-foreground">Không tìm thấy bài viết.</p>
+        <Link to="/tin-tuc" search={{}} className="text-brand hover:underline">
+          ← Quay lại danh sách tin tức
+        </Link>
+      </div>
+    );
+  }
+
   const related = (allPosts ?? []).filter((p) => p.slug !== post.slug).slice(0, 4);
   const mapQuery = encodeURIComponent(post.location ?? "");
   const attachments = (post.attachments ?? []) as Attachment[];

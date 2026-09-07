@@ -103,7 +103,7 @@ CREATE TABLE IF NOT EXISTS public_services (
     id   SERIAL PRIMARY KEY,
     slug TEXT NOT NULL UNIQUE,
     name TEXT NOT NULL,
-    "desc" TEXT NOT NULL DEFAULT ''
+    description TEXT NOT NULL DEFAULT ''
 );
 
 -- ============================================================
@@ -113,7 +113,7 @@ CREATE TABLE IF NOT EXISTS thematics (
     id    SERIAL PRIMARY KEY,
     slug  TEXT NOT NULL UNIQUE,
     name  TEXT NOT NULL,
-    "desc" TEXT NOT NULL DEFAULT '',
+    description  TEXT NOT NULL DEFAULT '',
     image TEXT NOT NULL DEFAULT ''
 );
 
@@ -144,7 +144,7 @@ CREATE TABLE IF NOT EXISTS media_videos (
 CREATE TABLE IF NOT EXISTS media_documents (
     id    SERIAL PRIMARY KEY,
     title TEXT NOT NULL,
-    "type"  TEXT NOT NULL DEFAULT 'PDF',
+    type  TEXT NOT NULL DEFAULT 'PDF',
     size  TEXT NOT NULL DEFAULT '',
     date  TEXT NOT NULL DEFAULT ''
 );
@@ -210,7 +210,7 @@ INSERT INTO honor_slides (id, title, subtitle, image) VALUES
 (4, 'Hộ gia đình văn hóa tiêu biểu',  'Chung tay xây dựng tuyến hẻm văn minh, sáng - xanh - sạch', '/src/assets/hero-dothi.jpg')
 ON CONFLICT (id) DO NOTHING;
 
-INSERT INTO public_services (id, slug, name, "desc") VALUES
+INSERT INTO public_services (id, slug, name, description) VALUES
 (1, 'van-hoa-du-lich',       'Văn hóa - Du lịch', 'Tổ chức hội thi, hội diễn, lớp năng khiếu, giới thiệu điểm đến trên địa bàn phường.'),
 (2, 'the-duc-the-thao',      'Thể dục, thể thao',  'Giải đấu phong trào, cho thuê sân bãi, hướng dẫn tập luyện, câu lạc bộ thể thao.'),
 (3, 'thong-tin-truyen-thong','Thông tin - Truyền thông', 'Tuyên truyền cổ động, sản xuất tin bài, hình ảnh, video phục vụ nhiệm vụ chính trị.'),
@@ -221,7 +221,7 @@ INSERT INTO public_services (id, slug, name, "desc") VALUES
 (8, 'dich-vu-khac',          'Dịch vụ khác', 'Các dịch vụ công do Trung tâm tổ chức thực hiện theo phân công của UBND phường.')
 ON CONFLICT (id) DO NOTHING;
 
-INSERT INTO thematics (id, slug, name, "desc", image) VALUES
+INSERT INTO thematics (id, slug, name, description, image) VALUES
 (1, 'diem-den-phu-thanh', 'Điểm đến phường Phú Thạnh', 'Giới thiệu các địa chỉ văn hóa, lịch sử, ẩm thực và không gian công cộng tiêu biểu.', '/src/assets/hero-dothi.jpg'),
 (2, 'dinh-duong-suc-khoe', 'Dinh dưỡng - Sức khỏe', 'Cẩm nang dinh dưỡng, vận động và chăm sóc sức khỏe cho mọi lứa tuổi.', '/src/assets/hero-thethao.jpg'),
 (3, 'chuyen-de-khac', 'Chuyên đề truyền thông khác', 'Chuyển đổi số, cải cách hành chính, an toàn thông tin, nếp sống văn minh đô thị.', '/src/assets/hero-moitruong.jpg')
@@ -242,7 +242,7 @@ INSERT INTO media_videos (id, title, source, embed_url, date) VALUES
 (3, 'Ký sự: Không gian văn hóa Hồ Chí Minh tại Thư viện phường', 'Vimeo', 'https://player.vimeo.com/video/76979871', '02/06/2026')
 ON CONFLICT (id) DO NOTHING;
 
-INSERT INTO media_documents (id, title, "type", size, date) VALUES
+INSERT INTO media_documents (id, title, type, size, date) VALUES
 (1, 'Kế hoạch xây dựng và vận hành Website Trung tâm', 'PDF', '1,2 MB', '10/06/2026'),
 (2, 'Quy chế hoạt động Website Trung tâm',             'PDF', '860 KB', '10/06/2026'),
 (3, 'Biểu mẫu đăng ký sử dụng sân bãi thể dục thể thao','Word','245 KB', '05/06/2026'),

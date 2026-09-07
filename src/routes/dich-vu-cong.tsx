@@ -69,7 +69,7 @@ function Services() {
                 <Landmark className="size-5" aria-hidden />
               </span>
               <h2 className="text-sm font-bold uppercase text-brand">{s.name}</h2>
-              <p className="text-sm text-muted-foreground">{s.desc}</p>
+              <p className="text-sm text-muted-foreground">{s.description}</p>
               <Link
                 to="/lien-he"
                 className="mt-auto inline-flex items-center gap-1 text-xs font-bold text-brand hover:underline"

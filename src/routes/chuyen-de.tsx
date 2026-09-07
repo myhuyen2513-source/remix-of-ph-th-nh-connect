@@ -53,7 +53,7 @@ function Thematics() {
             </div>
             <div className="space-y-2 p-5">
               <h2 className="text-base font-bold uppercase text-brand">{t.name}</h2>
-              <p className="text-sm text-muted-foreground">{t.desc}</p>
+              <p className="text-sm text-muted-foreground">{t.description}</p>
               <Link
                 to="/tin-tuc"
                 search={{}}

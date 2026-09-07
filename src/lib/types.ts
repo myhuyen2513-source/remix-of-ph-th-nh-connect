@@ -70,14 +70,14 @@ export interface PublicService {
   id: number;
   slug: string;
   name: string;
-  desc: string;
+  description: string;
 }
 
 export interface Thematic {
   id: number;
   slug: string;
   name: string;
-  desc: string;
+  description: string;
   image: string;
 }
 

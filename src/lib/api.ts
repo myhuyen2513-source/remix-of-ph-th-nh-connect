@@ -84,7 +84,7 @@ export async function getPosts(): Promise<Post[]> {
   const { rows } = await db.query<Post>(
     `SELECT p.*, c.color_var AS "categoryColor" FROM posts p
      LEFT JOIN categories c ON c.name = p.category
-     ORDER BY (p.date::date) DESC NULLS LAST, p.id DESC`,
+     ORDER BY p.id DESC`,
   );
   return rows;
 }
@@ -233,8 +233,8 @@ export async function getPublicServices(): Promise<PublicService[]> {
 export async function createPublicService(data: Omit<PublicService, "id">): Promise<PublicService> {
   const db = await getDb();
   const { rows } = await db.query<PublicService>(
-    "INSERT INTO public_services (slug, name, desc) VALUES ($1, $2, $3) RETURNING *",
-    [data.slug, data.name, data.desc],
+    "INSERT INTO public_services (slug, name, description) VALUES ($1, $2, $3) RETURNING *",
+    [data.slug, data.name, data.description],
   );
   return rows[0];
 }
@@ -273,8 +273,8 @@ export async function getThematics(): Promise<Thematic[]> {
 export async function createThematic(data: Omit<Thematic, "id">): Promise<Thematic> {
   const db = await getDb();
   const { rows } = await db.query<Thematic>(
-    "INSERT INTO thematics (slug, name, desc, image) VALUES ($1, $2, $3, $4) RETURNING *",
-    [data.slug, data.name, data.desc, data.image],
+    "INSERT INTO thematics (slug, name, description, image) VALUES ($1, $2, $3, $4) RETURNING *",
+    [data.slug, data.name, data.description, data.image],
   );
   return rows[0];
 }
