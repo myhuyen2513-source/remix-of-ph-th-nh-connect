@@ -40,6 +40,9 @@ CREATE TABLE IF NOT EXISTS system_settings (
     CONSTRAINT single_row CHECK (id = 1)
 );
 
+-- Ensure admin_password exists on databases created before this column was added
+ALTER TABLE system_settings ADD COLUMN IF NOT EXISTS admin_password TEXT NOT NULL DEFAULT 'admin123';
+
 -- ============================================================
 -- 2. BẢNG DANH MỤC (categories)
 -- ============================================================
