@@ -47,27 +47,32 @@ export type AuthResult =
   | { ok: false; error: string };
 
 export async function login(username: string, password: string): Promise<AuthResult> {
-  const db = await getDb();
-  const { rows } = await db.query<User & { password_hash: string }>(
-    "SELECT * FROM users WHERE username = $1",
-    [username],
-  );
-  if (rows.length === 0) return { ok: false, error: "Tên đăng nhập không tồn tại" };
-  const user = rows[0];
-  const valid = await verifyPassword(password, user.password_hash);
-  if (!valid) return { ok: false, error: "Mật khẩu không đúng" };
+  try {
+    const db = await getDb();
+    const { rows } = await db.query<User & { password_hash: string }>(
+      "SELECT * FROM users WHERE username = $1",
+      [username],
+    );
+    if (rows.length === 0) return { ok: false, error: "Tên đăng nhập không tồn tại" };
+    const user = rows[0];
+    const valid = await verifyPassword(password, user.password_hash);
+    if (!valid) return { ok: false, error: "Mật khẩu không đúng" };
 
-  const token = makeToken();
-  const safeUser: User = {
-    id: user.id,
-    username: user.username,
-    role: user.role as UserRole,
-    full_name: user.full_name,
-    created_at: user.created_at,
-  };
-  const session = { user: safeUser, token };
-  sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
-  return { ok: true, user: safeUser, token };
+    const token = makeToken();
+    const safeUser: User = {
+      id: user.id,
+      username: user.username,
+      role: user.role as UserRole,
+      full_name: user.full_name,
+      created_at: user.created_at,
+    };
+    const session = { user: safeUser, token };
+    sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
+    return { ok: true, user: safeUser, token };
+  } catch (err) {
+    console.error("Login error:", err);
+    return { ok: false, error: "Lỗi hệ thống, vui lòng thử lại" };
+  }
 }
 
 export function logout(): void {
