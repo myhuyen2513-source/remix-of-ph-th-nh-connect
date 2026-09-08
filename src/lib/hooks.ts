@@ -364,3 +364,25 @@ export function useDeleteContact() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["contacts"] }),
   });
 }
+
+// ── Search ────────────────────────────────────────────────────
+export function useSearchPosts(keyword: string) {
+  return useQuery({
+    queryKey: ["search", keyword],
+    queryFn: () => api.searchPosts(keyword),
+    enabled: keyword.trim().length > 0,
+  });
+}
+
+// ── Poll Question ──────────────────────────────────────────────
+export function usePollQuestion() {
+  return useQuery({ queryKey: ["pollQuestion"], queryFn: api.getPollQuestion });
+}
+
+export function useUpdatePollQuestion() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (question: string) => api.updatePollQuestion(question),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["pollQuestion"] }),
+  });
+}

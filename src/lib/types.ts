@@ -1,3 +1,18 @@
+export type UserRole = "ADMIN" | "EDITOR" | "VIEWER";
+
+export interface User {
+  id: number;
+  username: string;
+  role: UserRole;
+  full_name: string;
+  created_at?: string;
+}
+
+export interface AuthState {
+  user: User | null;
+  token: string | null;
+}
+
 export interface SystemSettings {
   id: number;
   org_name: string;
@@ -15,8 +30,10 @@ export interface SystemSettings {
   ubnd_url: string;
   alert_text: string;
   is_alert_active: boolean;
+  alert_start: string;
+  alert_end: string;
   welcome_text: string;
-  admin_password: string;
+  honor_interval: number;
 }
 
 export interface Category {
@@ -30,7 +47,7 @@ export interface Category {
 
 export interface Attachment {
   name: string;
-  type: "PDF" | "Word";
+  type: string;
   size: string;
 }
 
@@ -58,6 +75,9 @@ export interface EventItem {
   title: string;
   time: string;
   place: string;
+  description: string;
+  image: string;
+  status: string;
 }
 
 export interface HonorSlide {
@@ -65,6 +85,8 @@ export interface HonorSlide {
   title: string;
   subtitle: string;
   image: string;
+  sort_order: number;
+  status: string;
 }
 
 export interface PublicService {
@@ -110,6 +132,11 @@ export interface PollOption {
   label: string;
   value: number;
   color: string;
+}
+
+export interface PollQuestion {
+  id: number;
+  question: string;
 }
 
 export interface Contact {

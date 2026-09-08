@@ -490,6 +490,34 @@ export async function deleteContact(id: number): Promise<void> {
   await db.query("DELETE FROM contacts WHERE id = $1", [id]);
 }
 
+// ── Search ─────────────────────────────────────────────────────
+export async function searchPosts(keyword: string): Promise<Post[]> {
+  const db = await getDb();
+  const { rows } = await db.query<Post>(
+    `SELECT p.*, c.color_var AS "categoryColor" FROM posts p
+     LEFT JOIN categories c ON c.name = p.category
+     WHERE p.title ILIKE $1 OR p.excerpt ILIKE $1 OR EXISTS (SELECT 1 FROM unnest(p.body) AS para WHERE para ILIKE $1)
+     ORDER BY p.id DESC`,
+    [`%${keyword}%`],
+  );
+  return rows;
+}
+
+// ── Poll Question ──────────────────────────────────────────────
+export async function getPollQuestion(): Promise<string> {
+  const db = await getDb();
+  const { rows } = await db.query<{ question: string }>("SELECT question FROM poll_question WHERE id = 1");
+  return rows[0]?.question ?? "Bạn đánh giá thế nào về chất lượng phục vụ của Trung tâm?";
+}
+
+export async function updatePollQuestion(question: string): Promise<void> {
+  const db = await getDb();
+  await db.query(
+    "INSERT INTO poll_question (id, question) VALUES (1, $1) ON CONFLICT (id) DO UPDATE SET question = $1",
+    [question],
+  );
+}
+
 // ── Helper: category color lookup ─────────────────────────────
 export async function categoryColor(name: string): Promise<string> {
   const db = await getDb();

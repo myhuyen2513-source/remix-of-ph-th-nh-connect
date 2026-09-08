@@ -1,15 +1,5 @@
 /**
  * PostgreSQL Schema — Cấu trúc cơ sở dữ liệu cho website Trung tâm Cung ứng dịch vụ công.
- *
- * === HƯỚNG DẪN TRIỂN KHAI LÊN HOSTING MẮT BÃO ===
- *
- * 1. Đăng nhập vào phpPgAdmin / pgAdmin / psql trên hosting Mắt Bão.
- * 2. Tạo một database mới, ví dụ: `ttcudvc_phuthanh`.
- * 3. Copy toàn bộ nội dung biến SCHEMA_SQL bên dưới, paste vào trình soạn thảo SQL và chạy.
- * 4. Copy toàn bộ nội dung biến SEED_SQL, paste và chạy để chèn dữ liệu mẫu.
- * 5. Cập nhật chuỗi kết nối DATABASE_URL trong file .env của backend API.
- *
- * Lược đồ này dùng cú pháp PostgreSQL tiêu chuẩn, tương thích PostgreSQL 12+.
  */
 
 export const SCHEMA_SQL = /* sql */ `
@@ -33,16 +23,31 @@ CREATE TABLE IF NOT EXISTS system_settings (
     ubnd_url     TEXT NOT NULL DEFAULT '',
     alert_text   TEXT NOT NULL DEFAULT '',
     is_alert_active BOOLEAN NOT NULL DEFAULT FALSE,
+    alert_start  TEXT NOT NULL DEFAULT '',
+    alert_end    TEXT NOT NULL DEFAULT '',
     welcome_text   TEXT NOT NULL DEFAULT '',
-    admin_password TEXT NOT NULL DEFAULT 'admin123',
+    honor_interval INTEGER NOT NULL DEFAULT 5000,
     CONSTRAINT single_row CHECK (id = 1)
 );
 
--- Ensure admin_password exists on databases created before this column was added
-ALTER TABLE system_settings ADD COLUMN IF NOT EXISTS admin_password TEXT NOT NULL DEFAULT 'admin123';
+ALTER TABLE system_settings ADD COLUMN IF NOT EXISTS alert_start TEXT NOT NULL DEFAULT '';
+ALTER TABLE system_settings ADD COLUMN IF NOT EXISTS alert_end TEXT NOT NULL DEFAULT '';
+ALTER TABLE system_settings ADD COLUMN IF NOT EXISTS honor_interval INTEGER NOT NULL DEFAULT 5000;
 
 -- ============================================================
--- 2. BẢNG DANH MỤC (categories)
+-- 2. BẢNG NGƯỜI DÙNG (users)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS users (
+    id            SERIAL PRIMARY KEY,
+    username      TEXT NOT NULL UNIQUE,
+    password_hash TEXT NOT NULL,
+    role          TEXT NOT NULL DEFAULT 'VIEWER',
+    full_name     TEXT NOT NULL DEFAULT '',
+    created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- ============================================================
+-- 3. BẢNG DANH MỤC (categories)
 -- ============================================================
 CREATE TABLE IF NOT EXISTS categories (
     id        SERIAL PRIMARY KEY,
@@ -54,7 +59,7 @@ CREATE TABLE IF NOT EXISTS categories (
 );
 
 -- ============================================================
--- 3. BẢNG BÀI VIẾT / TIN TỨC (posts)
+-- 4. BẢNG BÀI VIẾT / TIN TỨC (posts)
 -- ============================================================
 CREATE TABLE IF NOT EXISTS posts (
     id          SERIAL PRIMARY KEY,
@@ -77,29 +82,41 @@ CREATE INDEX IF NOT EXISTS idx_posts_category  ON posts (category);
 CREATE INDEX IF NOT EXISTS idx_posts_featured ON posts (featured);
 
 -- ============================================================
--- 4. BẢNG SỰ KIỆN (events)
+-- 5. BẢNG SỰ KIỆN (events)
 -- ============================================================
 CREATE TABLE IF NOT EXISTS events (
-    id    SERIAL PRIMARY KEY,
-    day   INTEGER NOT NULL,
-    month INTEGER NOT NULL,
-    title TEXT NOT NULL,
-    time  TEXT NOT NULL DEFAULT '',
-    place TEXT NOT NULL DEFAULT ''
+    id     SERIAL PRIMARY KEY,
+    day    INTEGER NOT NULL,
+    month  INTEGER NOT NULL,
+    title  TEXT NOT NULL,
+    time   TEXT NOT NULL DEFAULT '',
+    place  TEXT NOT NULL DEFAULT '',
+    description TEXT NOT NULL DEFAULT '',
+    image  TEXT NOT NULL DEFAULT '',
+    status TEXT NOT NULL DEFAULT 'scheduled'
 );
 
+ALTER TABLE events ADD COLUMN IF NOT EXISTS description TEXT NOT NULL DEFAULT '';
+ALTER TABLE events ADD COLUMN IF NOT EXISTS image TEXT NOT NULL DEFAULT '';
+ALTER TABLE events ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'scheduled';
+
 -- ============================================================
--- 5. BẢNG HÌNH ẢNH ĐẲNG CẤP (honor_slides)
+-- 6. BẢNG HÌNH ẢNH ĐẲNG CẤP (honor_slides)
 -- ============================================================
 CREATE TABLE IF NOT EXISTS honor_slides (
     id       SERIAL PRIMARY KEY,
     title    TEXT NOT NULL,
     subtitle TEXT NOT NULL DEFAULT '',
-    image    TEXT NOT NULL DEFAULT ''
+    image    TEXT NOT NULL DEFAULT '',
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    status   TEXT NOT NULL DEFAULT 'active'
 );
 
+ALTER TABLE honor_slides ADD COLUMN IF NOT EXISTS sort_order INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE honor_slides ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'active';
+
 -- ============================================================
--- 6. BẢNG DỊCH VỤ CÔNG (public_services)
+-- 7. BẢNG DỊCH VỤ CÔNG (public_services)
 -- ============================================================
 CREATE TABLE IF NOT EXISTS public_services (
     id   SERIAL PRIMARY KEY,
@@ -109,7 +126,7 @@ CREATE TABLE IF NOT EXISTS public_services (
 );
 
 -- ============================================================
--- 7. BẢNG CHUYÊN ĐỀ (thematics)
+-- 8. BẢNG CHUYÊN ĐỀ (thematics)
 -- ============================================================
 CREATE TABLE IF NOT EXISTS thematics (
     id    SERIAL PRIMARY KEY,
@@ -120,7 +137,7 @@ CREATE TABLE IF NOT EXISTS thematics (
 );
 
 -- ============================================================
--- 8. BẢNG THƯ VIỆN — ẢNH (media_images)
+-- 9. BẢNG THƯ VIỆN — ẢNH (media_images)
 -- ============================================================
 CREATE TABLE IF NOT EXISTS media_images (
     id    SERIAL PRIMARY KEY,
@@ -130,7 +147,7 @@ CREATE TABLE IF NOT EXISTS media_images (
 );
 
 -- ============================================================
--- 9. BẢNG THƯ VIỆN — VIDEO (media_videos)
+-- 10. BẢNG THƯ VIỆN — VIDEO (media_videos)
 -- ============================================================
 CREATE TABLE IF NOT EXISTS media_videos (
     id        SERIAL PRIMARY KEY,
@@ -141,7 +158,7 @@ CREATE TABLE IF NOT EXISTS media_videos (
 );
 
 -- ============================================================
--- 10. BẢNG THƯ VIỆN — TÀI LIỆU (media_documents)
+-- 11. BẢNG THƯ VIỆN — TÀI LIỆU (media_documents)
 -- ============================================================
 CREATE TABLE IF NOT EXISTS media_documents (
     id    SERIAL PRIMARY KEY,
@@ -152,7 +169,7 @@ CREATE TABLE IF NOT EXISTS media_documents (
 );
 
 -- ============================================================
--- 11. BẢNG THĂM DÒ Ý KIẾN (polls)
+-- 12. BẢNG THĂM DÒ Ý KIẾN (polls)
 -- ============================================================
 CREATE TABLE IF NOT EXISTS poll_options (
     id    SERIAL PRIMARY KEY,
@@ -161,8 +178,14 @@ CREATE TABLE IF NOT EXISTS poll_options (
     color TEXT NOT NULL DEFAULT 'var(--color-brand)'
 );
 
+CREATE TABLE IF NOT EXISTS poll_question (
+    id    SERIAL PRIMARY KEY DEFAULT 1,
+    question TEXT NOT NULL DEFAULT 'Bạn đánh giá thế nào về chất lượng phục vụ của Trung tâm?',
+    CONSTRAINT single_row CHECK (id = 1)
+);
+
 -- ============================================================
--- 12. BẢNG LIÊN HỆ / GÓP Ý (contacts)
+-- 13. BẢNG LIÊN HỆ / GÓP Ý (contacts)
 -- ============================================================
 CREATE TABLE IF NOT EXISTS contacts (
     id         SERIAL PRIMARY KEY,
@@ -175,12 +198,14 @@ CREATE TABLE IF NOT EXISTS contacts (
 );
 `;
 
-/**
- * Dữ liệu mẫu ban đầu — chạy sau khi tạo schema.
- */
 export const SEED_SQL = /* sql */ `
-INSERT INTO system_settings (id, org_name, org_name_2, slogan, hotline, hotline_note, email, website, address, address_2, facebook_url, zalo_url, dvc_url, ubnd_url, alert_text, is_alert_active, welcome_text, admin_password)
-VALUES (1, 'Trung tâm Cung ứng dịch vụ công', 'Phường Phú Thạnh', 'Tận tâm phục vụ - Kết nối phát triển', '028 3979 7935', '(Giờ hành chính)', 'ttcudvcphuthanh@tphcm.gov.vn', 'ttcudvcphuthanh.gov.vn', '151 Lũy Bán Bích, Phường Phú Thạnh', 'Thành phố Hồ Chí Minh', 'https://www.facebook.com/', 'https://zalo.me/', 'https://dichvucong.gov.vn/', 'https://tphcm.gov.vn/', 'THÔNG BÁO KHẨN: Điều chỉnh lịch tiếp nhận hồ sơ tại Trung tâm trong thời gian bảo trì hệ thống, từ ngày 20/6/2026 đến 22/6/2026 — Người dân vui lòng liên hệ hotline 028 3979 7935 để được hướng dẫn.', TRUE, 'Chào mừng bạn đến với Website Trung tâm Cung ứng dịch vụ công phường Phú Thạnh', 'admin123')
+INSERT INTO system_settings (id, org_name, org_name_2, slogan, hotline, hotline_note, email, website, address, address_2, facebook_url, zalo_url, dvc_url, ubnd_url, alert_text, is_alert_active, welcome_text)
+VALUES (1, 'Trung tâm Cung ứng dịch vụ công', 'Phường Phú Thạnh', 'Tận tâm phục vụ - Kết nối phát triển', '028 3979 7935', '(Giờ hành chính)', 'ttcudvcphuthanh@tphcm.gov.vn', 'ttcudvcphuthanh.gov.vn', '151 Lũy Bán Bích, Phường Phú Thạnh', 'Thành phố Hồ Chí Minh', 'https://www.facebook.com/', 'https://zalo.me/', 'https://dichvucong.gov.vn/', 'https://tphcm.gov.vn/', 'THÔNG BÁO KHẨN: Điều chỉnh lịch tiếp nhận hồ sơ tại Trung tâm trong thời gian bảo trì hệ thống, từ ngày 20/6/2026 đến 22/6/2026 — Người dân vui lòng liên hệ hotline 028 3979 7935 để được hướng dẫn.', TRUE, 'Chào mừng bạn đến với Website Trung tâm Cung ứng dịch vụ công phường Phú Thạnh')
+ON CONFLICT (id) DO NOTHING;
+
+-- Default admin user (password: admin123, hashed with PBKDF2)
+INSERT INTO users (id, username, password_hash, role, full_name)
+VALUES (1, 'admin', 'pbkdf2:100000:sha256:' || encode(digest('admin123', 'sha256'), 'hex'), 'ADMIN', 'Quản trị viên')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO categories (id, slug, name, color_var, bullets, image) VALUES
@@ -206,11 +231,11 @@ INSERT INTO events (id, day, month, title, time, place) VALUES
 (3, 30, 6, 'Chương trình văn nghệ chào mừng tháng hành động vì môi trường', '19:00', 'Nhà Văn hóa Phú Thạnh')
 ON CONFLICT (id) DO NOTHING;
 
-INSERT INTO honor_slides (id, title, subtitle, image) VALUES
-(1, 'Đội văn nghệ Khu phố 3',   'Giải Nhất Hội thi Văn nghệ phường Phú Thạnh năm 2026', '/src/assets/hero-vanhoa.jpg'),
-(2, 'Chi hội Phụ nữ Khu phố 7', 'Tập thể xuất sắc trong phong trào Chủ nhật xanh',     '/src/assets/hero-moitruong.jpg'),
-(3, 'Câu lạc bộ Bóng đá Thanh niên', 'Gương điển hình phong trào thể dục thể thao cơ sở', '/src/assets/hero-thethao.jpg'),
-(4, 'Hộ gia đình văn hóa tiêu biểu',  'Chung tay xây dựng tuyến hẻm văn minh, sáng - xanh - sạch', '/src/assets/hero-dothi.jpg')
+INSERT INTO honor_slides (id, title, subtitle, image, sort_order, status) VALUES
+(1, 'Đội văn nghệ Khu phố 3',   'Giải Nhất Hội thi Văn nghệ phường Phú Thạnh năm 2026', '/src/assets/hero-vanhoa.jpg', 1, 'active'),
+(2, 'Chi hội Phụ nữ Khu phố 7', 'Tập thể xuất sắc trong phong trào Chủ nhật xanh',     '/src/assets/hero-moitruong.jpg', 2, 'active'),
+(3, 'Câu lạc bộ Bóng đá Thanh niên', 'Gương điển hình phong trào thể dục thể thao cơ sở', '/src/assets/hero-thethao.jpg', 3, 'active'),
+(4, 'Hộ gia đình văn hóa tiêu biểu',  'Chung tay xây dựng tuyến hẻm văn minh, sáng - xanh - sạch', '/src/assets/hero-dothi.jpg', 4, 'active')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public_services (id, slug, name, description) VALUES
@@ -250,6 +275,9 @@ INSERT INTO media_documents (id, title, type, size, date) VALUES
 (2, 'Quy chế hoạt động Website Trung tâm',             'PDF', '860 KB', '10/06/2026'),
 (3, 'Biểu mẫu đăng ký sử dụng sân bãi thể dục thể thao','Word','245 KB', '05/06/2026'),
 (4, 'Hướng dẫn phân loại rác tại nguồn (tờ gấp)',       'PDF', '3,4 MB', '01/06/2026')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO poll_question (id, question) VALUES (1, 'Bạn đánh giá thế nào về chất lượng phục vụ của Trung tâm?')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO poll_options (id, label, value, color) VALUES
