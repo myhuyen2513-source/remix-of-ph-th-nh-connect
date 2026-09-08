@@ -14,8 +14,10 @@ import {
   Users,
   Video,
   X,
+  KeyRound,
+  UserCog,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import {
   useCategories,
@@ -47,14 +49,30 @@ import {
   useMediaImages,
   useMediaVideos,
   usePollOptions,
+  usePollQuestion,
   usePosts,
   usePublicServices,
   useSettings,
   useThematics,
   useUpdateSettings,
+  useUpdatePollQuestion,
 } from "@/lib/hooks";
 import { resolveImage } from "@/lib/images";
-import type { Attachment } from "@/lib/types";
+import type { Attachment, User, UserRole } from "@/lib/types";
+import {
+  login,
+  logout,
+  getSession,
+  canAccess,
+  ROLE_PERMISSIONS,
+  changePassword,
+  createUser,
+  updateUserRole,
+  deleteUser,
+  resetPassword,
+  getUsers,
+} from "@/lib/auth";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({
@@ -78,9 +96,10 @@ type Tab =
   | "mediaVideos"
   | "mediaDocs"
   | "polls"
-  | "contacts";
+  | "contacts"
+  | "users";
 
-const tabs: { id: Tab; label: string; icon: typeof Settings }[] = [
+const ALL_TABS: { id: Tab; label: string; icon: typeof Settings }[] = [
   { id: "settings", label: "Cài đặt chung", icon: Settings },
   { id: "posts", label: "Tin tức", icon: FileText },
   { id: "categories", label: "Danh mục", icon: Layers },
@@ -93,21 +112,26 @@ const tabs: { id: Tab; label: string; icon: typeof Settings }[] = [
   { id: "mediaDocs", label: "Tài liệu", icon: FileText },
   { id: "polls", label: "Thăm dò", icon: Megaphone },
   { id: "contacts", label: "Góp ý", icon: Users },
+  { id: "users", label: "Người dùng", icon: UserCog },
 ];
 
 function LoginGate({ onSuccess }: { onSuccess: () => void }) {
-  const { data: settings } = useSettings();
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState(false);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (settings && password === settings.admin_password) {
-      sessionStorage.setItem("ttcudvc_admin", "1");
+    setLoading(true);
+    setError("");
+    const result = await login(username, password);
+    if (result.ok) {
       onSuccess();
     } else {
-      setError(true);
+      setError(result.error);
     }
+    setLoading(false);
   };
 
   return (
@@ -119,9 +143,18 @@ function LoginGate({ onSuccess }: { onSuccess: () => void }) {
         <div className="text-center">
           <h1 className="text-xl font-extrabold text-brand">Đăng nhập quản trị</h1>
           <p className="mt-1 text-xs text-muted-foreground">
-            Vui lòng nhập mật khẩu để truy cập trang quản trị nội dung.
+            Vui lòng nhập tên đăng nhập và mật khẩu để truy cập trang quản trị.
           </p>
         </div>
+        <Label>
+          Tên đăng nhập
+          <Input
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            autoFocus
+            placeholder="admin"
+          />
+        </Label>
         <Label>
           Mật khẩu
           <Input
@@ -129,19 +162,16 @@ function LoginGate({ onSuccess }: { onSuccess: () => void }) {
             value={password}
             onChange={(e) => {
               setPassword(e.target.value);
-              setError(false);
+              setError("");
             }}
-            autoFocus
             placeholder="••••••••"
           />
         </Label>
         {error && (
-          <p className="text-xs font-bold text-destructive">
-            Mật khẩu không đúng. Vui lòng thử lại.
-          </p>
+          <p className="text-xs font-bold text-destructive">{error}</p>
         )}
-        <BtnPrimary type="submit" className="w-full" disabled={!settings}>
-          {settings ? "Đăng nhập" : "Đang tải..."}
+        <BtnPrimary type="submit" className="w-full" disabled={loading}>
+          {loading ? "Đang đăng nhập..." : "Đăng nhập"}
         </BtnPrimary>
         <Link to="/" className="block text-center text-xs text-muted-foreground hover:underline">
           ← Quay lại trang chủ
@@ -152,12 +182,24 @@ function LoginGate({ onSuccess }: { onSuccess: () => void }) {
 }
 
 function AdminPanel() {
+  const [session, setSession] = useState(() => getSession());
   const [tab, setTab] = useState<Tab>("settings");
-  const [authed, setAuthed] = useState(() => sessionStorage.getItem("ttcudvc_admin") === "1");
 
-  if (!authed) {
-    return <LoginGate onSuccess={() => setAuthed(true)} />;
+  useEffect(() => {
+    if (session) {
+      const allowed = ROLE_PERMISSIONS[session.user.role] ?? [];
+      if (!allowed.includes(tab)) {
+        setTab((allowed[0] as Tab) ?? "settings");
+      }
+    }
+  }, [session, tab]);
+
+  if (!session) {
+    return <LoginGate onSuccess={() => setSession(getSession())} />;
   }
+
+  const visibleTabs = ALL_TABS.filter((t) => canAccess(t.id));
+  const currentRole = session.user.role;
 
   return (
     <div className="mx-auto w-full max-w-[1600px] px-3 py-6 sm:px-5">
@@ -167,10 +209,14 @@ function AdminPanel() {
         </Link>
         <ChevronRight className="size-3.5" aria-hidden />
         <span className="font-bold">Quản trị nội dung</span>
+        <span className="ml-2 rounded-full bg-brand/10 px-2 py-0.5 text-[10px] font-bold uppercase text-brand">
+          {currentRole}
+        </span>
+        <span className="ml-1 text-muted-foreground">· {session.user.full_name}</span>
         <button
           onClick={() => {
-            sessionStorage.removeItem("ttcudvc_admin");
-            setAuthed(false);
+            logout();
+            setSession(null);
           }}
           className="ml-auto text-xs font-bold text-muted-foreground hover:text-destructive"
         >
@@ -182,7 +228,7 @@ function AdminPanel() {
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,200px)_minmax(0,1fr)]">
         <nav className="flex flex-wrap gap-1 lg:flex-col">
-          {tabs.map((t) => (
+          {visibleTabs.map((t) => (
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
@@ -199,7 +245,7 @@ function AdminPanel() {
         </nav>
 
         <div className="min-w-0">
-          {tab === "settings" && <SettingsPanel />}
+          {tab === "settings" && <SettingsPanel session={session} />}
           {tab === "posts" && <PostsPanel />}
           {tab === "categories" && <CategoriesPanel />}
           {tab === "events" && <EventsPanel />}
@@ -211,6 +257,7 @@ function AdminPanel() {
           {tab === "mediaDocs" && <MediaDocsPanel />}
           {tab === "polls" && <PollsPanel />}
           {tab === "contacts" && <ContactsPanel />}
+          {tab === "users" && <UsersPanel />}
         </div>
       </div>
     </div>
@@ -306,16 +353,21 @@ function Modal({
 }
 
 // ── Settings Panel ─────────────────────────────────────────────
-function SettingsPanel() {
+function SettingsPanel({ session }: { session: { user: User } }) {
   const { data: settings } = useSettings();
   const updateMutation = useUpdateSettings();
   const [form, setForm] = useState<Record<string, string>>({});
   const [saved, setSaved] = useState(false);
 
+  const [oldPw, setOldPw] = useState("");
+  const [newPw, setNewPw] = useState("");
+  const [pwMsg, setPwMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [pwLoading, setPwLoading] = useState(false);
+
   if (!settings) return <p className="text-sm text-muted-foreground">Đang tải...</p>;
   const val = (key: string) => form[key] ?? String((settings as Record<string, unknown>)[key] ?? "");
 
-  const fields: { key: string; label: string; type?: string }[] = [
+  const fields: { key: string; label: string }[] = [
     { key: "org_name", label: "Tên cơ quan" },
     { key: "org_name_2", label: "Tên đơn vị" },
     { key: "slogan", label: "Khẩu hiệu" },
@@ -331,7 +383,34 @@ function SettingsPanel() {
     { key: "dvc_url", label: "Cổng DVC URL" },
     { key: "ubnd_url", label: "UBND URL" },
     { key: "alert_text", label: "Nội dung thông báo khẩn" },
+    { key: "alert_start", label: "Thời gian bắt đầu thông báo" },
+    { key: "alert_end", label: "Thời gian kết thúc thông báo" },
+    { key: "honor_interval", label: "Thời gian chuyển slide Bảng Vàng (ms)" },
   ];
+
+  const handleSave = () => {
+    const patch: Record<string, unknown> = {};
+    for (const k of Object.keys(form)) {
+      if (k === "is_alert_active") patch[k] = form[k] === "true";
+      else if (k === "honor_interval") patch[k] = parseInt(form[k]) || 5000;
+      else patch[k] = form[k];
+    }
+    updateMutation.mutate(patch, { onSuccess: () => setSaved(true) });
+  };
+
+  const handleChangePassword = async () => {
+    setPwLoading(true);
+    setPwMsg(null);
+    const result = await changePassword(session.user.id, oldPw, newPw);
+    if (result.ok) {
+      setPwMsg({ ok: true, text: "Đổi mật khẩu thành công!" });
+      setOldPw("");
+      setNewPw("");
+    } else {
+      setPwMsg({ ok: false, text: result.error ?? "Đổi mật khẩu thất bại" });
+    }
+    setPwLoading(false);
+  };
 
   return (
     <PanelCard title="Cài đặt chung">
@@ -355,44 +434,35 @@ function SettingsPanel() {
         </Label>
       </div>
       <div className="mt-4 flex items-center gap-3">
-        <BtnPrimary
-          onClick={() => {
-            const patch: Record<string, unknown> = {};
-            for (const k of Object.keys(form)) {
-              if (k === "is_alert_active") patch[k] = form[k] === "true";
-              else patch[k] = form[k];
-            }
-            updateMutation.mutate(patch, { onSuccess: () => setSaved(true) });
-          }}
-          disabled={updateMutation.isPending}
-        >
+        <BtnPrimary onClick={handleSave} disabled={updateMutation.isPending}>
           {updateMutation.isPending ? "Đang lưu..." : "Lưu thay đổi"}
         </BtnPrimary>
         {saved && <span className="text-xs font-semibold text-cat-moitruong">Đã lưu!</span>}
       </div>
 
       <div className="mt-6 border-t border-border pt-4">
-        <h3 className="mb-2 text-sm font-bold text-brand">Đổi mật khẩu quản trị</h3>
+        <h3 className="mb-2 flex items-center gap-1.5 text-sm font-bold text-brand">
+          <KeyRound className="size-4" />
+          Đổi mật khẩu của tôi
+        </h3>
         <div className="flex flex-wrap items-end gap-3">
           <Label>
-            Mật khẩu mới
-            <Input
-              type="password"
-              value={form.admin_password ?? ""}
-              onChange={(e) => setForm({ ...form, admin_password: e.target.value })}
-              placeholder="••••••••"
-            />
+            Mật khẩu cũ
+            <Input type="password" value={oldPw} onChange={(e) => setOldPw(e.target.value)} placeholder="••••••••" />
           </Label>
-          <BtnPrimary
-            onClick={() => {
-              if (!form.admin_password) return;
-              updateMutation.mutate({ admin_password: form.admin_password }, { onSuccess: () => setSaved(true) });
-            }}
-            disabled={updateMutation.isPending || !form.admin_password}
-          >
-            Đổi mật khẩu
+          <Label>
+            Mật khẩu mới
+            <Input type="password" value={newPw} onChange={(e) => setNewPw(e.target.value)} placeholder="••••••••" />
+          </Label>
+          <BtnPrimary onClick={handleChangePassword} disabled={pwLoading || !oldPw || !newPw}>
+            {pwLoading ? "Đang đổi..." : "Đổi mật khẩu"}
           </BtnPrimary>
         </div>
+        {pwMsg && (
+          <p className={`mt-2 text-xs font-bold ${pwMsg.ok ? "text-cat-moitruong" : "text-destructive"}`}>
+            {pwMsg.text}
+          </p>
+        )}
       </div>
     </PanelCard>
   );
@@ -417,21 +487,14 @@ function PostsPanel() {
       <ul className="space-y-2">
         {list.map((p) => (
           <li key={p.id} className="flex items-center gap-3 rounded-lg border border-border p-3">
-            <img
-              src={resolveImage(p.image)}
-              alt={p.title}
-              className="size-12 shrink-0 rounded-lg object-cover"
-            />
+            <img src={resolveImage(p.image)} alt={p.title} className="size-12 shrink-0 rounded-lg object-cover" />
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-semibold">{p.title}</p>
               <p className="text-xs text-muted-foreground">
                 {p.category} · {p.date} {p.featured ? "· Tin nổi bật" : ""}
               </p>
             </div>
-            <button
-              onClick={() => setEditing(p.id)}
-              className="rounded-lg border border-border px-3 py-1.5 text-xs font-bold hover:bg-accent"
-            >
+            <button onClick={() => setEditing(p.id)} className="rounded-lg border border-border px-3 py-1.5 text-xs font-bold hover:bg-accent">
               Sửa
             </button>
             <BtnDanger onClick={() => deleteMutation.mutate(p.id)}>
@@ -440,9 +503,7 @@ function PostsPanel() {
           </li>
         ))}
       </ul>
-      {editing !== null && (
-        <PostEditModal postId={editing === "new" ? null : editing} onClose={() => setEditing(null)} />
-      )}
+      {editing !== null && <PostEditModal postId={editing === "new" ? null : editing} onClose={() => setEditing(null)} />}
     </PanelCard>
   );
 }
@@ -503,27 +564,14 @@ function PostEditModal({ postId, onClose }: { postId: number | null; onClose: ()
         </Label>
         <Label>
           Danh mục
-          <select
-            value={form.category}
-            onChange={(e) => setForm({ ...form, category: e.target.value })}
-            className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm"
-          >
-            {cats.map((c) => (
-              <option key={c.id}>{c.name}</option>
-            ))}
+          <select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm">
+            {cats.map((c) => (<option key={c.id}>{c.name}</option>))}
           </select>
         </Label>
         <Label>
           Đối tượng
-          <select
-            value={form.audience}
-            onChange={(e) => setForm({ ...form, audience: e.target.value })}
-            className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm"
-          >
-            <option>Tất cả</option>
-            <option>Thiếu nhi</option>
-            <option>Thanh niên</option>
-            <option>Người cao tuổi</option>
+          <select value={form.audience} onChange={(e) => setForm({ ...form, audience: e.target.value })} className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm">
+            <option>Tất cả</option><option>Thiếu nhi</option><option>Thanh niên</option><option>Người cao tuổi</option>
           </select>
         </Label>
         <Label>
@@ -540,13 +588,8 @@ function PostEditModal({ postId, onClose }: { postId: number | null; onClose: ()
         </Label>
         <Label>
           Tin nổi bật
-          <select
-            value={String(form.featured)}
-            onChange={(e) => setForm({ ...form, featured: e.target.value === "true" })}
-            className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm"
-          >
-            <option value="false">Không</option>
-            <option value="true">Có</option>
+          <select value={String(form.featured)} onChange={(e) => setForm({ ...form, featured: e.target.value === "true" })} className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm">
+            <option value="false">Không</option><option value="true">Có</option>
           </select>
         </Label>
         <div className="sm:col-span-2">
@@ -572,9 +615,7 @@ function PostEditModal({ postId, onClose }: { postId: number | null; onClose: ()
         <BtnPrimary onClick={handleSubmit} disabled={createMutation.isPending || updateMutation.isPending}>
           {createMutation.isPending || updateMutation.isPending ? "Đang lưu..." : "Lưu"}
         </BtnPrimary>
-        <button onClick={onClose} className="rounded-lg border border-border px-4 text-sm font-bold hover:bg-accent">
-          Hủy
-        </button>
+        <button onClick={onClose} className="rounded-lg border border-border px-4 text-sm font-bold hover:bg-accent">Hủy</button>
       </div>
     </Modal>
   );
@@ -589,12 +630,8 @@ function CategoriesPanel() {
 
   return (
     <PanelCard title="Quản lý danh mục">
-      <button
-        onClick={() => setEditing("new")}
-        className="mb-3 inline-flex items-center gap-1.5 rounded-lg bg-brand px-3 py-2 text-xs font-bold text-brand-foreground hover:bg-brand-dark"
-      >
-        <Plus className="size-4" />
-        Thêm danh mục
+      <button onClick={() => setEditing("new")} className="mb-3 inline-flex items-center gap-1.5 rounded-lg bg-brand px-3 py-2 text-xs font-bold text-brand-foreground hover:bg-brand-dark">
+        <Plus className="size-4" /> Thêm danh mục
       </button>
       <ul className="space-y-2">
         {list.map((c) => (
@@ -604,18 +641,12 @@ function CategoriesPanel() {
               <p className="text-sm font-semibold">{c.name}</p>
               <p className="truncate text-xs text-muted-foreground">{c.slug}</p>
             </div>
-            <button onClick={() => setEditing(c.id)} className="rounded-lg border border-border px-3 py-1.5 text-xs font-bold hover:bg-accent">
-              Sửa
-            </button>
-            <BtnDanger onClick={() => deleteMutation.mutate(c.id)}>
-              <Trash2 className="size-4" />
-            </BtnDanger>
+            <button onClick={() => setEditing(c.id)} className="rounded-lg border border-border px-3 py-1.5 text-xs font-bold hover:bg-accent">Sửa</button>
+            <BtnDanger onClick={() => deleteMutation.mutate(c.id)}><Trash2 className="size-4" /></BtnDanger>
           </li>
         ))}
       </ul>
-      {editing !== null && (
-        <CategoryEditModal categoryId={editing === "new" ? null : editing} onClose={() => setEditing(null)} />
-      )}
+      {editing !== null && <CategoryEditModal categoryId={editing === "new" ? null : editing} onClose={() => setEditing(null)} />}
     </PanelCard>
   );
 }
@@ -635,51 +666,23 @@ function CategoryEditModal({ categoryId, onClose }: { categoryId: number | null;
   });
 
   const handleSubmit = () => {
-    const data = {
-      slug: form.slug,
-      name: form.name,
-      color_var: form.color_var,
-      bullets: form.bullets.split("\n").filter(Boolean),
-      image: form.image,
-    };
-    if (categoryId !== null) {
-      updateMutation.mutate({ id: categoryId, data }, { onSuccess: onClose });
-    } else {
-      createMutation.mutate(data, { onSuccess: onClose });
-    }
+    const data = { slug: form.slug, name: form.name, color_var: form.color_var, bullets: form.bullets.split("\n").filter(Boolean), image: form.image };
+    if (categoryId !== null) updateMutation.mutate({ id: categoryId, data }, { onSuccess: onClose });
+    else createMutation.mutate(data, { onSuccess: onClose });
   };
 
   return (
     <Modal title={categoryId !== null ? "Sửa danh mục" : "Thêm danh mục"} onClose={onClose}>
       <div className="grid gap-3">
-        <Label>
-          Tên danh mục
-          <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-        </Label>
-        <Label>
-          Đường dẫn (slug)
-          <Input value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })} />
-        </Label>
-        <Label>
-          Màu (CSS variable)
-          <Input value={form.color_var} onChange={(e) => setForm({ ...form, color_var: e.target.value })} />
-        </Label>
-        <Label>
-          Đường dẫn ảnh
-          <Input value={form.image} onChange={(e) => setForm({ ...form, image: e.target.value })} />
-        </Label>
-        <Label>
-          Gạch đầu dòng (mỗi dòng một mục)
-          <TextArea rows={4} value={form.bullets} onChange={(e) => setForm({ ...form, bullets: e.target.value })} />
-        </Label>
+        <Label>Tên danh mục<Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></Label>
+        <Label>Đường dẫn (slug)<Input value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })} /></Label>
+        <Label>Màu (CSS variable)<Input value={form.color_var} onChange={(e) => setForm({ ...form, color_var: e.target.value })} /></Label>
+        <Label>Đường dẫn ảnh<Input value={form.image} onChange={(e) => setForm({ ...form, image: e.target.value })} /></Label>
+        <Label>Gạch đầu dòng (mỗi dòng một mục)<TextArea rows={4} value={form.bullets} onChange={(e) => setForm({ ...form, bullets: e.target.value })} /></Label>
       </div>
       <div className="mt-4 flex gap-2">
-        <BtnPrimary onClick={handleSubmit} disabled={createMutation.isPending || updateMutation.isPending}>
-          {createMutation.isPending || updateMutation.isPending ? "Đang lưu..." : "Lưu"}
-        </BtnPrimary>
-        <button onClick={onClose} className="rounded-lg border border-border px-4 text-sm font-bold hover:bg-accent">
-          Hủy
-        </button>
+        <BtnPrimary onClick={handleSubmit} disabled={createMutation.isPending || updateMutation.isPending}>{createMutation.isPending || updateMutation.isPending ? "Đang lưu..." : "Lưu"}</BtnPrimary>
+        <button onClick={onClose} className="rounded-lg border border-border px-4 text-sm font-bold hover:bg-accent">Hủy</button>
       </div>
     </Modal>
   );
@@ -694,12 +697,8 @@ function EventsPanel() {
 
   return (
     <PanelCard title="Quản lý sự kiện">
-      <button
-        onClick={() => setEditing("new")}
-        className="mb-3 inline-flex items-center gap-1.5 rounded-lg bg-brand px-3 py-2 text-xs font-bold text-brand-foreground hover:bg-brand-dark"
-      >
-        <Plus className="size-4" />
-        Thêm sự kiện
+      <button onClick={() => setEditing("new")} className="mb-3 inline-flex items-center gap-1.5 rounded-lg bg-brand px-3 py-2 text-xs font-bold text-brand-foreground hover:bg-brand-dark">
+        <Plus className="size-4" /> Thêm sự kiện
       </button>
       <ul className="space-y-2">
         {list.map((e) => (
@@ -712,18 +711,12 @@ function EventsPanel() {
               <p className="truncate text-sm font-semibold">{e.title}</p>
               <p className="text-xs text-muted-foreground">{e.time} - {e.place}</p>
             </div>
-            <button onClick={() => setEditing(e.id)} className="rounded-lg border border-border px-3 py-1.5 text-xs font-bold hover:bg-accent">
-              Sửa
-            </button>
-            <BtnDanger onClick={() => deleteMutation.mutate(e.id)}>
-              <Trash2 className="size-4" />
-            </BtnDanger>
+            <button onClick={() => setEditing(e.id)} className="rounded-lg border border-border px-3 py-1.5 text-xs font-bold hover:bg-accent">Sửa</button>
+            <BtnDanger onClick={() => deleteMutation.mutate(e.id)}><Trash2 className="size-4" /></BtnDanger>
           </li>
         ))}
       </ul>
-      {editing !== null && (
-        <EventEditModal eventId={editing === "new" ? null : editing} onClose={() => setEditing(null)} />
-      )}
+      {editing !== null && <EventEditModal eventId={editing === "new" ? null : editing} onClose={() => setEditing(null)} />}
     </PanelCard>
   );
 }
@@ -743,53 +736,23 @@ function EventEditModal({ eventId, onClose }: { eventId: number | null; onClose:
   });
 
   const handleSubmit = () => {
-    const data = {
-      day: parseInt(form.day),
-      month: parseInt(form.month),
-      title: form.title,
-      time: form.time,
-      place: form.place,
-    };
-    if (eventId !== null) {
-      updateMutation.mutate({ id: eventId, data }, { onSuccess: onClose });
-    } else {
-      createMutation.mutate(data, { onSuccess: onClose });
-    }
+    const data = { day: parseInt(form.day), month: parseInt(form.month), title: form.title, time: form.time, place: form.place };
+    if (eventId !== null) updateMutation.mutate({ id: eventId, data }, { onSuccess: onClose });
+    else createMutation.mutate(data, { onSuccess: onClose });
   };
 
   return (
     <Modal title={eventId !== null ? "Sửa sự kiện" : "Thêm sự kiện"} onClose={onClose}>
       <div className="grid gap-3 sm:grid-cols-2">
-        <Label>
-          Ngày
-          <Input type="number" value={form.day} onChange={(e) => setForm({ ...form, day: e.target.value })} />
-        </Label>
-        <Label>
-          Tháng
-          <Input type="number" value={form.month} onChange={(e) => setForm({ ...form, month: e.target.value })} />
-        </Label>
-        <div className="sm:col-span-2">
-          <Label>
-            Tên sự kiện
-            <Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
-          </Label>
-        </div>
-        <Label>
-          Giờ
-          <Input value={form.time} onChange={(e) => setForm({ ...form, time: e.target.value })} />
-        </Label>
-        <Label>
-          Địa điểm
-          <Input value={form.place} onChange={(e) => setForm({ ...form, place: e.target.value })} />
-        </Label>
+        <Label>Ngày<Input type="number" value={form.day} onChange={(e) => setForm({ ...form, day: e.target.value })} /></Label>
+        <Label>Tháng<Input type="number" value={form.month} onChange={(e) => setForm({ ...form, month: e.target.value })} /></Label>
+        <div className="sm:col-span-2"><Label>Tên sự kiện<Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} /></Label></div>
+        <Label>Giờ<Input value={form.time} onChange={(e) => setForm({ ...form, time: e.target.value })} /></Label>
+        <Label>Địa điểm<Input value={form.place} onChange={(e) => setForm({ ...form, place: e.target.value })} /></Label>
       </div>
       <div className="mt-4 flex gap-2">
-        <BtnPrimary onClick={handleSubmit} disabled={createMutation.isPending || updateMutation.isPending}>
-          {createMutation.isPending || updateMutation.isPending ? "Đang lưu..." : "Lưu"}
-        </BtnPrimary>
-        <button onClick={onClose} className="rounded-lg border border-border px-4 text-sm font-bold hover:bg-accent">
-          Hủy
-        </button>
+        <BtnPrimary onClick={handleSubmit} disabled={createMutation.isPending || updateMutation.isPending}>{createMutation.isPending || updateMutation.isPending ? "Đang lưu..." : "Lưu"}</BtnPrimary>
+        <button onClick={onClose} className="rounded-lg border border-border px-4 text-sm font-bold hover:bg-accent">Hủy</button>
       </div>
     </Modal>
   );
@@ -804,12 +767,8 @@ function HonorPanel() {
 
   return (
     <PanelCard title="Quản lý Bảng Vàng Danh Dự">
-      <button
-        onClick={() => setEditing("new")}
-        className="mb-3 inline-flex items-center gap-1.5 rounded-lg bg-brand px-3 py-2 text-xs font-bold text-brand-foreground hover:bg-brand-dark"
-      >
-        <Plus className="size-4" />
-        Thêm gương điển hình
+      <button onClick={() => setEditing("new")} className="mb-3 inline-flex items-center gap-1.5 rounded-lg bg-brand px-3 py-2 text-xs font-bold text-brand-foreground hover:bg-brand-dark">
+        <Plus className="size-4" /> Thêm gương điển hình
       </button>
       <ul className="space-y-2">
         {list.map((s) => (
@@ -819,18 +778,12 @@ function HonorPanel() {
               <p className="truncate text-sm font-semibold">{s.title}</p>
               <p className="truncate text-xs text-muted-foreground">{s.subtitle}</p>
             </div>
-            <button onClick={() => setEditing(s.id)} className="rounded-lg border border-border px-3 py-1.5 text-xs font-bold hover:bg-accent">
-              Sửa
-            </button>
-            <BtnDanger onClick={() => deleteMutation.mutate(s.id)}>
-              <Trash2 className="size-4" />
-            </BtnDanger>
+            <button onClick={() => setEditing(s.id)} className="rounded-lg border border-border px-3 py-1.5 text-xs font-bold hover:bg-accent">Sửa</button>
+            <BtnDanger onClick={() => deleteMutation.mutate(s.id)}><Trash2 className="size-4" /></BtnDanger>
           </li>
         ))}
       </ul>
-      {editing !== null && (
-        <HonorEditModal slideId={editing === "new" ? null : editing} onClose={() => setEditing(null)} />
-      )}
+      {editing !== null && <HonorEditModal slideId={editing === "new" ? null : editing} onClose={() => setEditing(null)} />}
     </PanelCard>
   );
 }
@@ -841,43 +794,23 @@ function HonorEditModal({ slideId, onClose }: { slideId: number | null; onClose:
   const updateMutation = useUpdateHonorSlide();
   const existing = slideId !== null ? slides?.find((s) => s.id === slideId) : null;
 
-  const [form, setForm] = useState({
-    title: existing?.title ?? "",
-    subtitle: existing?.subtitle ?? "",
-    image: existing?.image ?? "",
-  });
+  const [form, setForm] = useState({ title: existing?.title ?? "", subtitle: existing?.subtitle ?? "", image: existing?.image ?? "" });
 
   const handleSubmit = () => {
-    if (slideId !== null) {
-      updateMutation.mutate({ id: slideId, data: form }, { onSuccess: onClose });
-    } else {
-      createMutation.mutate(form, { onSuccess: onClose });
-    }
+    if (slideId !== null) updateMutation.mutate({ id: slideId, data: form }, { onSuccess: onClose });
+    else createMutation.mutate(form, { onSuccess: onClose });
   };
 
   return (
     <Modal title={slideId !== null ? "Sửa gương điển hình" : "Thêm gương điển hình"} onClose={onClose}>
       <div className="grid gap-3">
-        <Label>
-          Tiêu đề
-          <Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
-        </Label>
-        <Label>
-          Mô tả
-          <Input value={form.subtitle} onChange={(e) => setForm({ ...form, subtitle: e.target.value })} />
-        </Label>
-        <Label>
-          Đường dẫn ảnh
-          <Input value={form.image} onChange={(e) => setForm({ ...form, image: e.target.value })} />
-        </Label>
+        <Label>Tiêu đề<Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} /></Label>
+        <Label>Mô tả<Input value={form.subtitle} onChange={(e) => setForm({ ...form, subtitle: e.target.value })} /></Label>
+        <Label>Đường dẫn ảnh<Input value={form.image} onChange={(e) => setForm({ ...form, image: e.target.value })} /></Label>
       </div>
       <div className="mt-4 flex gap-2">
-        <BtnPrimary onClick={handleSubmit} disabled={createMutation.isPending || updateMutation.isPending}>
-          {createMutation.isPending || updateMutation.isPending ? "Đang lưu..." : "Lưu"}
-        </BtnPrimary>
-        <button onClick={onClose} className="rounded-lg border border-border px-4 text-sm font-bold hover:bg-accent">
-          Hủy
-        </button>
+        <BtnPrimary onClick={handleSubmit} disabled={createMutation.isPending || updateMutation.isPending}>{createMutation.isPending || updateMutation.isPending ? "Đang lưu..." : "Lưu"}</BtnPrimary>
+        <button onClick={onClose} className="rounded-lg border border-border px-4 text-sm font-bold hover:bg-accent">Hủy</button>
       </div>
     </Modal>
   );
@@ -892,12 +825,8 @@ function ServicesPanel() {
 
   return (
     <PanelCard title="Quản lý dịch vụ công">
-      <button
-        onClick={() => setEditing("new")}
-        className="mb-3 inline-flex items-center gap-1.5 rounded-lg bg-brand px-3 py-2 text-xs font-bold text-brand-foreground hover:bg-brand-dark"
-      >
-        <Plus className="size-4" />
-        Thêm dịch vụ
+      <button onClick={() => setEditing("new")} className="mb-3 inline-flex items-center gap-1.5 rounded-lg bg-brand px-3 py-2 text-xs font-bold text-brand-foreground hover:bg-brand-dark">
+        <Plus className="size-4" /> Thêm dịch vụ
       </button>
       <ul className="space-y-2">
         {list.map((s) => (
@@ -906,18 +835,12 @@ function ServicesPanel() {
               <p className="truncate text-sm font-semibold">{s.name}</p>
               <p className="truncate text-xs text-muted-foreground">{s.description}</p>
             </div>
-            <button onClick={() => setEditing(s.id)} className="rounded-lg border border-border px-3 py-1.5 text-xs font-bold hover:bg-accent">
-              Sửa
-            </button>
-            <BtnDanger onClick={() => deleteMutation.mutate(s.id)}>
-              <Trash2 className="size-4" />
-            </BtnDanger>
+            <button onClick={() => setEditing(s.id)} className="rounded-lg border border-border px-3 py-1.5 text-xs font-bold hover:bg-accent">Sửa</button>
+            <BtnDanger onClick={() => deleteMutation.mutate(s.id)}><Trash2 className="size-4" /></BtnDanger>
           </li>
         ))}
       </ul>
-      {editing !== null && (
-        <ServiceEditModal serviceId={editing === "new" ? null : editing} onClose={() => setEditing(null)} />
-      )}
+      {editing !== null && <ServiceEditModal serviceId={editing === "new" ? null : editing} onClose={() => setEditing(null)} />}
     </PanelCard>
   );
 }
@@ -928,43 +851,23 @@ function ServiceEditModal({ serviceId, onClose }: { serviceId: number | null; on
   const updateMutation = useUpdatePublicService();
   const existing = serviceId !== null ? services?.find((s) => s.id === serviceId) : null;
 
-  const [form, setForm] = useState({
-    slug: existing?.slug ?? "",
-    name: existing?.name ?? "",
-    description: existing?.description ?? "",
-  });
+  const [form, setForm] = useState({ slug: existing?.slug ?? "", name: existing?.name ?? "", description: existing?.description ?? "" });
 
   const handleSubmit = () => {
-    if (serviceId !== null) {
-      updateMutation.mutate({ id: serviceId, data: form }, { onSuccess: onClose });
-    } else {
-      createMutation.mutate(form, { onSuccess: onClose });
-    }
+    if (serviceId !== null) updateMutation.mutate({ id: serviceId, data: form }, { onSuccess: onClose });
+    else createMutation.mutate(form, { onSuccess: onClose });
   };
 
   return (
     <Modal title={serviceId !== null ? "Sửa dịch vụ" : "Thêm dịch vụ"} onClose={onClose}>
       <div className="grid gap-3">
-        <Label>
-          Tên dịch vụ
-          <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-        </Label>
-        <Label>
-          Đường dẫn (slug)
-          <Input value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })} />
-        </Label>
-        <Label>
-          Mô tả
-          <TextArea rows={3} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
-        </Label>
+        <Label>Tên dịch vụ<Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></Label>
+        <Label>Đường dẫn (slug)<Input value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })} /></Label>
+        <Label>Mô tả<TextArea rows={3} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></Label>
       </div>
       <div className="mt-4 flex gap-2">
-        <BtnPrimary onClick={handleSubmit} disabled={createMutation.isPending || updateMutation.isPending}>
-          {createMutation.isPending || updateMutation.isPending ? "Đang lưu..." : "Lưu"}
-        </BtnPrimary>
-        <button onClick={onClose} className="rounded-lg border border-border px-4 text-sm font-bold hover:bg-accent">
-          Hủy
-        </button>
+        <BtnPrimary onClick={handleSubmit} disabled={createMutation.isPending || updateMutation.isPending}>{createMutation.isPending || updateMutation.isPending ? "Đang lưu..." : "Lưu"}</BtnPrimary>
+        <button onClick={onClose} className="rounded-lg border border-border px-4 text-sm font-bold hover:bg-accent">Hủy</button>
       </div>
     </Modal>
   );
@@ -979,12 +882,8 @@ function ThematicsPanel() {
 
   return (
     <PanelCard title="Quản lý chuyên đề">
-      <button
-        onClick={() => setEditing("new")}
-        className="mb-3 inline-flex items-center gap-1.5 rounded-lg bg-brand px-3 py-2 text-xs font-bold text-brand-foreground hover:bg-brand-dark"
-      >
-        <Plus className="size-4" />
-        Thêm chuyên đề
+      <button onClick={() => setEditing("new")} className="mb-3 inline-flex items-center gap-1.5 rounded-lg bg-brand px-3 py-2 text-xs font-bold text-brand-foreground hover:bg-brand-dark">
+        <Plus className="size-4" /> Thêm chuyên đề
       </button>
       <ul className="space-y-2">
         {list.map((t) => (
@@ -994,18 +893,12 @@ function ThematicsPanel() {
               <p className="truncate text-sm font-semibold">{t.name}</p>
               <p className="truncate text-xs text-muted-foreground">{t.description}</p>
             </div>
-            <button onClick={() => setEditing(t.id)} className="rounded-lg border border-border px-3 py-1.5 text-xs font-bold hover:bg-accent">
-              Sửa
-            </button>
-            <BtnDanger onClick={() => deleteMutation.mutate(t.id)}>
-              <Trash2 className="size-4" />
-            </BtnDanger>
+            <button onClick={() => setEditing(t.id)} className="rounded-lg border border-border px-3 py-1.5 text-xs font-bold hover:bg-accent">Sửa</button>
+            <BtnDanger onClick={() => deleteMutation.mutate(t.id)}><Trash2 className="size-4" /></BtnDanger>
           </li>
         ))}
       </ul>
-      {editing !== null && (
-        <ThematicEditModal thematicId={editing === "new" ? null : editing} onClose={() => setEditing(null)} />
-      )}
+      {editing !== null && <ThematicEditModal thematicId={editing === "new" ? null : editing} onClose={() => setEditing(null)} />}
     </PanelCard>
   );
 }
@@ -1016,48 +909,24 @@ function ThematicEditModal({ thematicId, onClose }: { thematicId: number | null;
   const updateMutation = useUpdateThematic();
   const existing = thematicId !== null ? thematics?.find((t) => t.id === thematicId) : null;
 
-  const [form, setForm] = useState({
-    slug: existing?.slug ?? "",
-    name: existing?.name ?? "",
-    description: existing?.description ?? "",
-    image: existing?.image ?? "",
-  });
+  const [form, setForm] = useState({ slug: existing?.slug ?? "", name: existing?.name ?? "", description: existing?.description ?? "", image: existing?.image ?? "" });
 
   const handleSubmit = () => {
-    if (thematicId !== null) {
-      updateMutation.mutate({ id: thematicId, data: form }, { onSuccess: onClose });
-    } else {
-      createMutation.mutate(form, { onSuccess: onClose });
-    }
+    if (thematicId !== null) updateMutation.mutate({ id: thematicId, data: form }, { onSuccess: onClose });
+    else createMutation.mutate(form, { onSuccess: onClose });
   };
 
   return (
     <Modal title={thematicId !== null ? "Sửa chuyên đề" : "Thêm chuyên đề"} onClose={onClose}>
       <div className="grid gap-3">
-        <Label>
-          Tên chuyên đề
-          <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-        </Label>
-        <Label>
-          Đường dẫn (slug)
-          <Input value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })} />
-        </Label>
-        <Label>
-          Đường dẫn ảnh
-          <Input value={form.image} onChange={(e) => setForm({ ...form, image: e.target.value })} />
-        </Label>
-        <Label>
-          Mô tả
-          <TextArea rows={3} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
-        </Label>
+        <Label>Tên chuyên đề<Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></Label>
+        <Label>Đường dẫn (slug)<Input value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })} /></Label>
+        <Label>Đường dẫn ảnh<Input value={form.image} onChange={(e) => setForm({ ...form, image: e.target.value })} /></Label>
+        <Label>Mô tả<TextArea rows={3} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></Label>
       </div>
       <div className="mt-4 flex gap-2">
-        <BtnPrimary onClick={handleSubmit} disabled={createMutation.isPending || updateMutation.isPending}>
-          {createMutation.isPending || updateMutation.isPending ? "Đang lưu..." : "Lưu"}
-        </BtnPrimary>
-        <button onClick={onClose} className="rounded-lg border border-border px-4 text-sm font-bold hover:bg-accent">
-          Hủy
-        </button>
+        <BtnPrimary onClick={handleSubmit} disabled={createMutation.isPending || updateMutation.isPending}>{createMutation.isPending || updateMutation.isPending ? "Đang lưu..." : "Lưu"}</BtnPrimary>
+        <button onClick={onClose} className="rounded-lg border border-border px-4 text-sm font-bold hover:bg-accent">Hủy</button>
       </div>
     </Modal>
   );
@@ -1072,12 +941,8 @@ function MediaImagesPanel() {
 
   return (
     <PanelCard title="Quản lý thư viện ảnh">
-      <button
-        onClick={() => setEditing("new")}
-        className="mb-3 inline-flex items-center gap-1.5 rounded-lg bg-brand px-3 py-2 text-xs font-bold text-brand-foreground hover:bg-brand-dark"
-      >
-        <Plus className="size-4" />
-        Thêm ảnh
+      <button onClick={() => setEditing("new")} className="mb-3 inline-flex items-center gap-1.5 rounded-lg bg-brand px-3 py-2 text-xs font-bold text-brand-foreground hover:bg-brand-dark">
+        <Plus className="size-4" /> Thêm ảnh
       </button>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {list.map((m) => (
@@ -1086,19 +951,13 @@ function MediaImagesPanel() {
             <p className="truncate text-sm font-semibold">{m.title}</p>
             <p className="text-xs text-muted-foreground">{m.date}</p>
             <div className="mt-2 flex gap-2">
-              <button onClick={() => setEditing(m.id)} className="rounded-lg border border-border px-3 py-1 text-xs font-bold hover:bg-accent">
-                Sửa
-              </button>
-              <BtnDanger onClick={() => deleteMutation.mutate(m.id)}>
-                <Trash2 className="size-4" />
-              </BtnDanger>
+              <button onClick={() => setEditing(m.id)} className="rounded-lg border border-border px-3 py-1 text-xs font-bold hover:bg-accent">Sửa</button>
+              <BtnDanger onClick={() => deleteMutation.mutate(m.id)}><Trash2 className="size-4" /></BtnDanger>
             </div>
           </div>
         ))}
       </div>
-      {editing !== null && (
-        <MediaImageEditModal imageId={editing === "new" ? null : editing} onClose={() => setEditing(null)} />
-      )}
+      {editing !== null && <MediaImageEditModal imageId={editing === "new" ? null : editing} onClose={() => setEditing(null)} />}
     </PanelCard>
   );
 }
@@ -1109,43 +968,23 @@ function MediaImageEditModal({ imageId, onClose }: { imageId: number | null; onC
   const updateMutation = useUpdateMediaImage();
   const existing = imageId !== null ? images?.find((m) => m.id === imageId) : null;
 
-  const [form, setForm] = useState({
-    title: existing?.title ?? "",
-    image: existing?.image ?? "",
-    date: existing?.date ?? new Date().toLocaleDateString("vi-VN"),
-  });
+  const [form, setForm] = useState({ title: existing?.title ?? "", image: existing?.image ?? "", date: existing?.date ?? new Date().toLocaleDateString("vi-VN") });
 
   const handleSubmit = () => {
-    if (imageId !== null) {
-      updateMutation.mutate({ id: imageId, data: form }, { onSuccess: onClose });
-    } else {
-      createMutation.mutate(form, { onSuccess: onClose });
-    }
+    if (imageId !== null) updateMutation.mutate({ id: imageId, data: form }, { onSuccess: onClose });
+    else createMutation.mutate(form, { onSuccess: onClose });
   };
 
   return (
     <Modal title={imageId !== null ? "Sửa ảnh" : "Thêm ảnh"} onClose={onClose}>
       <div className="grid gap-3">
-        <Label>
-          Tiêu đề
-          <Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
-        </Label>
-        <Label>
-          Đường dẫn ảnh
-          <Input value={form.image} onChange={(e) => setForm({ ...form, image: e.target.value })} />
-        </Label>
-        <Label>
-          Ngày
-          <Input value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} />
-        </Label>
+        <Label>Tiêu đề<Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} /></Label>
+        <Label>Đường dẫn ảnh<Input value={form.image} onChange={(e) => setForm({ ...form, image: e.target.value })} /></Label>
+        <Label>Ngày<Input value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} /></Label>
       </div>
       <div className="mt-4 flex gap-2">
-        <BtnPrimary onClick={handleSubmit} disabled={createMutation.isPending || updateMutation.isPending}>
-          {createMutation.isPending || updateMutation.isPending ? "Đang lưu..." : "Lưu"}
-        </BtnPrimary>
-        <button onClick={onClose} className="rounded-lg border border-border px-4 text-sm font-bold hover:bg-accent">
-          Hủy
-        </button>
+        <BtnPrimary onClick={handleSubmit} disabled={createMutation.isPending || updateMutation.isPending}>{createMutation.isPending || updateMutation.isPending ? "Đang lưu..." : "Lưu"}</BtnPrimary>
+        <button onClick={onClose} className="rounded-lg border border-border px-4 text-sm font-bold hover:bg-accent">Hủy</button>
       </div>
     </Modal>
   );
@@ -1160,12 +999,8 @@ function MediaVideosPanel() {
 
   return (
     <PanelCard title="Quản lý kho video">
-      <button
-        onClick={() => setEditing("new")}
-        className="mb-3 inline-flex items-center gap-1.5 rounded-lg bg-brand px-3 py-2 text-xs font-bold text-brand-foreground hover:bg-brand-dark"
-      >
-        <Plus className="size-4" />
-        Thêm video
+      <button onClick={() => setEditing("new")} className="mb-3 inline-flex items-center gap-1.5 rounded-lg bg-brand px-3 py-2 text-xs font-bold text-brand-foreground hover:bg-brand-dark">
+        <Plus className="size-4" /> Thêm video
       </button>
       <ul className="space-y-2">
         {list.map((v) => (
@@ -1174,18 +1009,12 @@ function MediaVideosPanel() {
               <p className="truncate text-sm font-semibold">{v.title}</p>
               <p className="text-xs text-muted-foreground">{v.source} · {v.date}</p>
             </div>
-            <button onClick={() => setEditing(v.id)} className="rounded-lg border border-border px-3 py-1.5 text-xs font-bold hover:bg-accent">
-              Sửa
-            </button>
-            <BtnDanger onClick={() => deleteMutation.mutate(v.id)}>
-              <Trash2 className="size-4" />
-            </BtnDanger>
+            <button onClick={() => setEditing(v.id)} className="rounded-lg border border-border px-3 py-1.5 text-xs font-bold hover:bg-accent">Sửa</button>
+            <BtnDanger onClick={() => deleteMutation.mutate(v.id)}><Trash2 className="size-4" /></BtnDanger>
           </li>
         ))}
       </ul>
-      {editing !== null && (
-        <MediaVideoEditModal videoId={editing === "new" ? null : editing} onClose={() => setEditing(null)} />
-      )}
+      {editing !== null && <MediaVideoEditModal videoId={editing === "new" ? null : editing} onClose={() => setEditing(null)} />}
     </PanelCard>
   );
 }
@@ -1196,48 +1025,24 @@ function MediaVideoEditModal({ videoId, onClose }: { videoId: number | null; onC
   const updateMutation = useUpdateMediaVideo();
   const existing = videoId !== null ? videos?.find((v) => v.id === videoId) : null;
 
-  const [form, setForm] = useState({
-    title: existing?.title ?? "",
-    source: existing?.source ?? "YouTube",
-    embed_url: existing?.embed_url ?? "",
-    date: existing?.date ?? new Date().toLocaleDateString("vi-VN"),
-  });
+  const [form, setForm] = useState({ title: existing?.title ?? "", source: existing?.source ?? "YouTube", embed_url: existing?.embed_url ?? "", date: existing?.date ?? new Date().toLocaleDateString("vi-VN") });
 
   const handleSubmit = () => {
-    if (videoId !== null) {
-      updateMutation.mutate({ id: videoId, data: form }, { onSuccess: onClose });
-    } else {
-      createMutation.mutate(form, { onSuccess: onClose });
-    }
+    if (videoId !== null) updateMutation.mutate({ id: videoId, data: form }, { onSuccess: onClose });
+    else createMutation.mutate(form, { onSuccess: onClose });
   };
 
   return (
     <Modal title={videoId !== null ? "Sửa video" : "Thêm video"} onClose={onClose}>
       <div className="grid gap-3">
-        <Label>
-          Tiêu đề
-          <Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
-        </Label>
-        <Label>
-          Nguồn
-          <Input value={form.source} onChange={(e) => setForm({ ...form, source: e.target.value })} />
-        </Label>
-        <Label>
-          Embed URL
-          <Input value={form.embed_url} onChange={(e) => setForm({ ...form, embed_url: e.target.value })} />
-        </Label>
-        <Label>
-          Ngày
-          <Input value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} />
-        </Label>
+        <Label>Tiêu đề<Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} /></Label>
+        <Label>Nguồn<Input value={form.source} onChange={(e) => setForm({ ...form, source: e.target.value })} /></Label>
+        <Label>Embed URL<Input value={form.embed_url} onChange={(e) => setForm({ ...form, embed_url: e.target.value })} /></Label>
+        <Label>Ngày<Input value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} /></Label>
       </div>
       <div className="mt-4 flex gap-2">
-        <BtnPrimary onClick={handleSubmit} disabled={createMutation.isPending || updateMutation.isPending}>
-          {createMutation.isPending || updateMutation.isPending ? "Đang lưu..." : "Lưu"}
-        </BtnPrimary>
-        <button onClick={onClose} className="rounded-lg border border-border px-4 text-sm font-bold hover:bg-accent">
-          Hủy
-        </button>
+        <BtnPrimary onClick={handleSubmit} disabled={createMutation.isPending || updateMutation.isPending}>{createMutation.isPending || updateMutation.isPending ? "Đang lưu..." : "Lưu"}</BtnPrimary>
+        <button onClick={onClose} className="rounded-lg border border-border px-4 text-sm font-bold hover:bg-accent">Hủy</button>
       </div>
     </Modal>
   );
@@ -1252,12 +1057,8 @@ function MediaDocsPanel() {
 
   return (
     <PanelCard title="Quản lý tài liệu">
-      <button
-        onClick={() => setEditing("new")}
-        className="mb-3 inline-flex items-center gap-1.5 rounded-lg bg-brand px-3 py-2 text-xs font-bold text-brand-foreground hover:bg-brand-dark"
-      >
-        <Plus className="size-4" />
-        Thêm tài liệu
+      <button onClick={() => setEditing("new")} className="mb-3 inline-flex items-center gap-1.5 rounded-lg bg-brand px-3 py-2 text-xs font-bold text-brand-foreground hover:bg-brand-dark">
+        <Plus className="size-4" /> Thêm tài liệu
       </button>
       <ul className="space-y-2">
         {list.map((d) => (
@@ -1266,18 +1067,12 @@ function MediaDocsPanel() {
               <p className="truncate text-sm font-semibold">{d.title}</p>
               <p className="text-xs text-muted-foreground">{d.type} · {d.size} · {d.date}</p>
             </div>
-            <button onClick={() => setEditing(d.id)} className="rounded-lg border border-border px-3 py-1.5 text-xs font-bold hover:bg-accent">
-              Sửa
-            </button>
-            <BtnDanger onClick={() => deleteMutation.mutate(d.id)}>
-              <Trash2 className="size-4" />
-            </BtnDanger>
+            <button onClick={() => setEditing(d.id)} className="rounded-lg border border-border px-3 py-1.5 text-xs font-bold hover:bg-accent">Sửa</button>
+            <BtnDanger onClick={() => deleteMutation.mutate(d.id)}><Trash2 className="size-4" /></BtnDanger>
           </li>
         ))}
       </ul>
-      {editing !== null && (
-        <MediaDocEditModal docId={editing === "new" ? null : editing} onClose={() => setEditing(null)} />
-      )}
+      {editing !== null && <MediaDocEditModal docId={editing === "new" ? null : editing} onClose={() => setEditing(null)} />}
     </PanelCard>
   );
 }
@@ -1288,55 +1083,24 @@ function MediaDocEditModal({ docId, onClose }: { docId: number | null; onClose: 
   const updateMutation = useUpdateMediaDocument();
   const existing = docId !== null ? documents?.find((d) => d.id === docId) : null;
 
-  const [form, setForm] = useState({
-    title: existing?.title ?? "",
-    type: existing?.type ?? "PDF",
-    size: existing?.size ?? "",
-    date: existing?.date ?? new Date().toLocaleDateString("vi-VN"),
-  });
+  const [form, setForm] = useState({ title: existing?.title ?? "", type: existing?.type ?? "PDF", size: existing?.size ?? "", date: existing?.date ?? new Date().toLocaleDateString("vi-VN") });
 
   const handleSubmit = () => {
-    if (docId !== null) {
-      updateMutation.mutate({ id: docId, data: form }, { onSuccess: onClose });
-    } else {
-      createMutation.mutate(form, { onSuccess: onClose });
-    }
+    if (docId !== null) updateMutation.mutate({ id: docId, data: form }, { onSuccess: onClose });
+    else createMutation.mutate(form, { onSuccess: onClose });
   };
 
   return (
     <Modal title={docId !== null ? "Sửa tài liệu" : "Thêm tài liệu"} onClose={onClose}>
       <div className="grid gap-3">
-        <Label>
-          Tiêu đề
-          <Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
-        </Label>
-        <Label>
-          Loại
-          <select
-            value={form.type}
-            onChange={(e) => setForm({ ...form, type: e.target.value })}
-            className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm"
-          >
-            <option>PDF</option>
-            <option>Word</option>
-          </select>
-        </Label>
-        <Label>
-          Dung lượng
-          <Input value={form.size} onChange={(e) => setForm({ ...form, size: e.target.value })} />
-        </Label>
-        <Label>
-          Ngày
-          <Input value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} />
-        </Label>
+        <Label>Tiêu đề<Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} /></Label>
+        <Label>Loại<select value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })} className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm"><option>PDF</option><option>Word</option></select></Label>
+        <Label>Dung lượng<Input value={form.size} onChange={(e) => setForm({ ...form, size: e.target.value })} /></Label>
+        <Label>Ngày<Input value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} /></Label>
       </div>
       <div className="mt-4 flex gap-2">
-        <BtnPrimary onClick={handleSubmit} disabled={createMutation.isPending || updateMutation.isPending}>
-          {createMutation.isPending || updateMutation.isPending ? "Đang lưu..." : "Lưu"}
-        </BtnPrimary>
-        <button onClick={onClose} className="rounded-lg border border-border px-4 text-sm font-bold hover:bg-accent">
-          Hủy
-        </button>
+        <BtnPrimary onClick={handleSubmit} disabled={createMutation.isPending || updateMutation.isPending}>{createMutation.isPending || updateMutation.isPending ? "Đang lưu..." : "Lưu"}</BtnPrimary>
+        <button onClick={onClose} className="rounded-lg border border-border px-4 text-sm font-bold hover:bg-accent">Hủy</button>
       </div>
     </Modal>
   );
@@ -1345,18 +1109,43 @@ function MediaDocEditModal({ docId, onClose }: { docId: number | null; onClose: 
 // ── Polls Panel ───────────────────────────────────────────────
 function PollsPanel() {
   const { data: options } = usePollOptions();
+  const { data: question } = usePollQuestion();
+  const updateQuestionMutation = useUpdatePollQuestion();
   const deleteMutation = useDeletePollOption();
   const [editing, setEditing] = useState<number | "new" | null>(null);
+  const [qEdit, setQEdit] = useState(false);
+  const [qText, setQText] = useState("");
   const list = options ?? [];
+
+  useEffect(() => {
+    if (question) setQText(question);
+  }, [question]);
 
   return (
     <PanelCard title="Quản lý thăm dò ý kiến">
-      <button
-        onClick={() => setEditing("new")}
-        className="mb-3 inline-flex items-center gap-1.5 rounded-lg bg-brand px-3 py-2 text-xs font-bold text-brand-foreground hover:bg-brand-dark"
-      >
-        <Plus className="size-4" />
-        Thêm phương án
+      <div className="mb-4 rounded-lg border border-border p-3">
+        <h3 className="mb-2 text-xs font-bold uppercase text-muted-foreground">Câu hỏi thăm dò</h3>
+        {qEdit ? (
+          <div className="flex flex-wrap items-end gap-2">
+            <Label>
+              Câu hỏi
+              <Input value={qText} onChange={(e) => setQText(e.target.value)} className="min-w-[300px]" />
+            </Label>
+            <BtnPrimary onClick={() => { updateQuestionMutation.mutate(qText, { onSuccess: () => setQEdit(false) }); }} disabled={updateQuestionMutation.isPending}>
+              {updateQuestionMutation.isPending ? "Đang lưu..." : "Lưu câu hỏi"}
+            </BtnPrimary>
+            <button onClick={() => setQEdit(false)} className="rounded-lg border border-border px-4 text-sm font-bold hover:bg-accent">Hủy</button>
+          </div>
+        ) : (
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-sm font-semibold">{question ?? "—"}</p>
+            <button onClick={() => setQEdit(true)} className="rounded-lg border border-border px-3 py-1.5 text-xs font-bold hover:bg-accent">Sửa câu hỏi</button>
+          </div>
+        )}
+      </div>
+
+      <button onClick={() => setEditing("new")} className="mb-3 inline-flex items-center gap-1.5 rounded-lg bg-brand px-3 py-2 text-xs font-bold text-brand-foreground hover:bg-brand-dark">
+        <Plus className="size-4" /> Thêm phương án
       </button>
       <ul className="space-y-2">
         {list.map((o) => (
@@ -1366,18 +1155,12 @@ function PollsPanel() {
               <p className="text-sm font-semibold">{o.label}</p>
               <p className="text-xs text-muted-foreground">{o.value} lượt bình chọn</p>
             </div>
-            <button onClick={() => setEditing(o.id)} className="rounded-lg border border-border px-3 py-1.5 text-xs font-bold hover:bg-accent">
-              Sửa
-            </button>
-            <BtnDanger onClick={() => deleteMutation.mutate(o.id)}>
-              <Trash2 className="size-4" />
-            </BtnDanger>
+            <button onClick={() => setEditing(o.id)} className="rounded-lg border border-border px-3 py-1.5 text-xs font-bold hover:bg-accent">Sửa</button>
+            <BtnDanger onClick={() => deleteMutation.mutate(o.id)}><Trash2 className="size-4" /></BtnDanger>
           </li>
         ))}
       </ul>
-      {editing !== null && (
-        <PollEditModal pollId={editing === "new" ? null : editing} onClose={() => setEditing(null)} />
-      )}
+      {editing !== null && <PollEditModal pollId={editing === "new" ? null : editing} onClose={() => setEditing(null)} />}
     </PanelCard>
   );
 }
@@ -1388,44 +1171,24 @@ function PollEditModal({ pollId, onClose }: { pollId: number | null; onClose: ()
   const updateMutation = useUpdatePollOption();
   const existing = pollId !== null ? options?.find((o) => o.id === pollId) : null;
 
-  const [form, setForm] = useState({
-    label: existing?.label ?? "",
-    value: String(existing?.value ?? 0),
-    color: existing?.color ?? "var(--color-brand)",
-  });
+  const [form, setForm] = useState({ label: existing?.label ?? "", value: String(existing?.value ?? 0), color: existing?.color ?? "var(--color-brand)" });
 
   const handleSubmit = () => {
     const data = { label: form.label, value: parseInt(form.value) || 0, color: form.color };
-    if (pollId !== null) {
-      updateMutation.mutate({ id: pollId, data }, { onSuccess: onClose });
-    } else {
-      createMutation.mutate(data, { onSuccess: onClose });
-    }
+    if (pollId !== null) updateMutation.mutate({ id: pollId, data }, { onSuccess: onClose });
+    else createMutation.mutate(data, { onSuccess: onClose });
   };
 
   return (
     <Modal title={pollId !== null ? "Sửa phương án" : "Thêm phương án"} onClose={onClose}>
       <div className="grid gap-3">
-        <Label>
-          Nhãn
-          <Input value={form.label} onChange={(e) => setForm({ ...form, label: e.target.value })} />
-        </Label>
-        <Label>
-          Số lượt
-          <Input type="number" value={form.value} onChange={(e) => setForm({ ...form, value: e.target.value })} />
-        </Label>
-        <Label>
-          Màu (CSS variable)
-          <Input value={form.color} onChange={(e) => setForm({ ...form, color: e.target.value })} />
-        </Label>
+        <Label>Nhãn<Input value={form.label} onChange={(e) => setForm({ ...form, label: e.target.value })} /></Label>
+        <Label>Số lượt<Input type="number" value={form.value} onChange={(e) => setForm({ ...form, value: e.target.value })} /></Label>
+        <Label>Màu (CSS variable)<Input value={form.color} onChange={(e) => setForm({ ...form, color: e.target.value })} /></Label>
       </div>
       <div className="mt-4 flex gap-2">
-        <BtnPrimary onClick={handleSubmit} disabled={createMutation.isPending || updateMutation.isPending}>
-          {createMutation.isPending || updateMutation.isPending ? "Đang lưu..." : "Lưu"}
-        </BtnPrimary>
-        <button onClick={onClose} className="rounded-lg border border-border px-4 text-sm font-bold hover:bg-accent">
-          Hủy
-        </button>
+        <BtnPrimary onClick={handleSubmit} disabled={createMutation.isPending || updateMutation.isPending}>{createMutation.isPending || updateMutation.isPending ? "Đang lưu..." : "Lưu"}</BtnPrimary>
+        <button onClick={onClose} className="rounded-lg border border-border px-4 text-sm font-bold hover:bg-accent">Hủy</button>
       </div>
     </Modal>
   );
@@ -1448,18 +1211,136 @@ function ContactsPanel() {
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
                   <p className="text-sm font-semibold">{c.name}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {c.phone} · {c.email} · {c.topic}
-                  </p>
+                  <p className="text-xs text-muted-foreground">{c.phone} · {c.email} · {c.topic}</p>
                 </div>
-                <BtnDanger onClick={() => deleteMutation.mutate(c.id)}>
-                  <Trash2 className="size-4" />
-                </BtnDanger>
+                <BtnDanger onClick={() => deleteMutation.mutate(c.id)}><Trash2 className="size-4" /></BtnDanger>
               </div>
               <p className="mt-2 text-sm text-foreground">{c.message}</p>
             </li>
           ))}
         </ul>
+      )}
+    </PanelCard>
+  );
+}
+
+// ── Users Panel (ADMIN only) ──────────────────────────────────
+function UsersPanel() {
+  const qc = useQueryClient();
+  const { data: users } = useQuery({ queryKey: ["users"], queryFn: getUsers });
+  const [showAdd, setShowAdd] = useState(false);
+  const [resetUserId, setResetUserId] = useState<number | null>(null);
+  const list = users ?? [];
+
+  const [newUser, setNewUser] = useState({ username: "", password: "", role: "EDITOR" as UserRole, fullName: "" });
+  const [addMsg, setAddMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [addLoading, setAddLoading] = useState(false);
+
+  const [resetPw, setResetPw] = useState("");
+
+  const handleAdd = async () => {
+    setAddLoading(true);
+    setAddMsg(null);
+    const result = await createUser(newUser.username, newUser.password, newUser.role, newUser.fullName);
+    if (result.ok) {
+      setAddMsg({ ok: true, text: "Đã tạo người dùng mới!" });
+      setNewUser({ username: "", password: "", role: "EDITOR", fullName: "" });
+      qc.invalidateQueries({ queryKey: ["users"] });
+    } else {
+      setAddMsg({ ok: false, text: result.error ?? "Tạo thất bại" });
+    }
+    setAddLoading(false);
+  };
+
+  const handleRoleChange = async (userId: number, role: UserRole) => {
+    await updateUserRole(userId, role);
+    qc.invalidateQueries({ queryKey: ["users"] });
+  };
+
+  const handleDelete = async (userId: number) => {
+    await deleteUser(userId);
+    qc.invalidateQueries({ queryKey: ["users"] });
+  };
+
+  const handleReset = async () => {
+    if (resetUserId === null || !resetPw) return;
+    await resetPassword(resetUserId, resetPw);
+    setResetUserId(null);
+    setResetPw("");
+    qc.invalidateQueries({ queryKey: ["users"] });
+  };
+
+  return (
+    <PanelCard title="Quản lý người dùng">
+      <button onClick={() => setShowAdd(!showAdd)} className="mb-3 inline-flex items-center gap-1.5 rounded-lg bg-brand px-3 py-2 text-xs font-bold text-brand-foreground hover:bg-brand-dark">
+        <Plus className="size-4" /> Thêm người dùng
+      </button>
+
+      {showAdd && (
+        <div className="mb-4 rounded-lg border border-border p-3">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Label>Tên đăng nhập<Input value={newUser.username} onChange={(e) => setNewUser({ ...newUser, username: e.target.value })} /></Label>
+            <Label>Họ và tên<Input value={newUser.fullName} onChange={(e) => setNewUser({ ...newUser, fullName: e.target.value })} /></Label>
+            <Label>Mật khẩu<Input type="password" value={newUser.password} onChange={(e) => setNewUser({ ...newUser, password: e.target.value })} /></Label>
+            <Label>
+              Vai trò
+              <select value={newUser.role} onChange={(e) => setNewUser({ ...newUser, role: e.target.value as UserRole })} className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm">
+                <option value="ADMIN">Quản trị viên (ADMIN)</option>
+                <option value="EDITOR">Biên tập viên (EDITOR)</option>
+                <option value="VIEWER">Người xem (VIEWER)</option>
+              </select>
+            </Label>
+          </div>
+          <div className="mt-3 flex items-center gap-3">
+            <BtnPrimary onClick={handleAdd} disabled={addLoading || !newUser.username || !newUser.password}>
+              {addLoading ? "Đang tạo..." : "Tạo người dùng"}
+            </BtnPrimary>
+            <button onClick={() => setShowAdd(false)} className="rounded-lg border border-border px-4 text-sm font-bold hover:bg-accent">Đóng</button>
+            {addMsg && <span className={`text-xs font-bold ${addMsg.ok ? "text-cat-moitruong" : "text-destructive"}`}>{addMsg.text}</span>}
+          </div>
+        </div>
+      )}
+
+      <ul className="space-y-2">
+        {list.map((u) => (
+          <li key={u.id} className="flex items-center gap-3 rounded-lg border border-border p-3">
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-brand/10 text-brand">
+              <Users className="size-5" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-semibold">{u.full_name} <span className="font-normal text-muted-foreground">({u.username})</span></p>
+              <p className="text-xs text-muted-foreground">Vai trò: {u.role}</p>
+            </div>
+            <select
+              value={u.role}
+              onChange={(e) => handleRoleChange(u.id, e.target.value as UserRole)}
+              className="h-9 rounded-lg border border-border bg-background px-2 text-xs font-bold"
+            >
+              <option value="ADMIN">ADMIN</option>
+              <option value="EDITOR">EDITOR</option>
+              <option value="VIEWER">VIEWER</option>
+            </select>
+            <button onClick={() => setResetUserId(u.id)} className="rounded-lg border border-border px-3 py-1.5 text-xs font-bold hover:bg-accent">
+              <KeyRound className="size-3.5" />
+            </button>
+            {u.id !== 1 && (
+              <BtnDanger onClick={() => handleDelete(u.id)}><Trash2 className="size-4" /></BtnDanger>
+            )}
+          </li>
+        ))}
+      </ul>
+
+      {resetUserId !== null && (
+        <Modal title="Đặt lại mật khẩu" onClose={() => setResetUserId(null)}>
+          <Label>
+            Mật khẩu mới
+            <Input type="password" value={resetPw} onChange={(e) => setResetPw(e.target.value)} placeholder="••••••••" autoFocus />
+          </Label>
+          <div className="mt-4 flex gap-2">
+            <BtnPrimary onClick={handleReset} disabled={!resetPw}>Đặt lại mật khẩu</BtnPrimary>
+            <button onClick={() => setResetUserId(null)} className="rounded-lg border border-border px-4 text-sm font-bold hover:bg-accent">Hủy</button>
+          </div>
+        </Modal>
       )}
     </PanelCard>
   );

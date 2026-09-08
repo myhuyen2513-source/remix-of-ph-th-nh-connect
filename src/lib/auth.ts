@@ -27,6 +27,9 @@ async function hashPassword(password: string): Promise<string> {
 }
 
 async function verifyPassword(password: string, storedHash: string): Promise<boolean> {
+  if (storedHash.startsWith("PLAIN:")) {
+    return password === storedHash.slice(6);
+  }
   const computed = await hashPassword(password);
   return computed === storedHash;
 }

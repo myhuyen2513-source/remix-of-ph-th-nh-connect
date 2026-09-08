@@ -1,5 +1,5 @@
-import { Link } from "@tanstack/react-router";
-import { Facebook, Home, LogIn, MapPin, Menu, MessageCircle, Phone, X } from "lucide-react";
+import { Link, useNavigate } from "@tanstack/react-router";
+import { Facebook, Home, LogIn, MapPin, Menu, MessageCircle, Phone, Search, X } from "lucide-react";
 import { useState } from "react";
 
 import logo from "@/assets/logo-ttcu.jpg.asset.json";
@@ -17,7 +17,17 @@ export const navItems = [
 
 export function SiteHeader() {
   const [open, setOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const navigate = useNavigate();
   const { data: settings } = useSettings();
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      navigate({ to: "/tim-kiem", search: { q: searchQuery.trim() } });
+      setOpen(false);
+    }
+  };
 
   return (
     <header>
@@ -97,6 +107,18 @@ export function SiteHeader() {
           </div>
 
           <div className="ml-auto hidden items-center gap-2 py-1.5 lg:flex">
+            <form onSubmit={handleSearch} className="relative">
+              <input
+                type="search"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Tìm kiếm..."
+                className="h-8 w-44 rounded-full bg-brand-foreground/15 px-3 pr-8 text-xs text-brand-foreground placeholder:text-brand-foreground/60 outline-none focus:w-64 focus:bg-brand-foreground/25 transition-all"
+              />
+              <button type="submit" className="absolute right-2 top-1/2 -translate-y-1/2 text-brand-foreground/70 hover:text-brand-foreground">
+                <Search className="size-3.5" />
+              </button>
+            </form>
             <a
               href={settings?.facebook_url ?? "#"}
               target="_blank"
@@ -147,6 +169,16 @@ export function SiteHeader() {
                   {item.label}
                 </Link>
               ))}
+              <form onSubmit={handleSearch} className="flex items-center gap-2 border-b border-brand-foreground/15 py-2.5">
+                <Search className="size-4 shrink-0" />
+                <input
+                  type="search"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Tìm kiếm tin tức..."
+                  className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-brand-foreground/60"
+                />
+              </form>
               <Link
                 to="/admin"
                 onClick={() => setOpen(false)}

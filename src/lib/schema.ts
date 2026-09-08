@@ -203,9 +203,9 @@ INSERT INTO system_settings (id, org_name, org_name_2, slogan, hotline, hotline_
 VALUES (1, 'Trung tâm Cung ứng dịch vụ công', 'Phường Phú Thạnh', 'Tận tâm phục vụ - Kết nối phát triển', '028 3979 7935', '(Giờ hành chính)', 'ttcudvcphuthanh@tphcm.gov.vn', 'ttcudvcphuthanh.gov.vn', '151 Lũy Bán Bích, Phường Phú Thạnh', 'Thành phố Hồ Chí Minh', 'https://www.facebook.com/', 'https://zalo.me/', 'https://dichvucong.gov.vn/', 'https://tphcm.gov.vn/', 'THÔNG BÁO KHẨN: Điều chỉnh lịch tiếp nhận hồ sơ tại Trung tâm trong thời gian bảo trì hệ thống, từ ngày 20/6/2026 đến 22/6/2026 — Người dân vui lòng liên hệ hotline 028 3979 7935 để được hướng dẫn.', TRUE, 'Chào mừng bạn đến với Website Trung tâm Cung ứng dịch vụ công phường Phú Thạnh')
 ON CONFLICT (id) DO NOTHING;
 
--- Default admin user (password: admin123, hashed with PBKDF2)
+-- Default admin user (password: admin123, stored as PLAIN for client-side hashing)
 INSERT INTO users (id, username, password_hash, role, full_name)
-VALUES (1, 'admin', 'pbkdf2:100000:sha256:' || encode(digest('admin123', 'sha256'), 'hex'), 'ADMIN', 'Quản trị viên')
+VALUES (1, 'admin', 'PLAIN:admin123', 'ADMIN', 'Quản trị viên')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO categories (id, slug, name, color_var, bullets, image) VALUES

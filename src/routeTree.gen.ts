@@ -17,6 +17,7 @@ import { Route as GioiThieuRouteImport } from './routes/gioi-thieu'
 import { Route as KhongGianVanHoaHoChiMinhRouteImport } from './routes/khong-gian-van-hoa-ho-chi-minh'
 import { Route as LienHeRouteImport } from './routes/lien-he'
 import { Route as ThuVienRouteImport } from './routes/thu-vien'
+import { Route as TimKiemRouteImport } from './routes/tim-kiem'
 import { Route as TinTucIndexRouteImport } from './routes/tin-tuc.index'
 import { Route as TinTucSlugRouteImport } from './routes/tin-tuc.$slug'
 
@@ -61,6 +62,11 @@ const ThuVienRoute = ThuVienRouteImport.update({
   path: '/thu-vien',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TimKiemRoute = TimKiemRouteImport.update({
+  id: '/tim-kiem',
+  path: '/tim-kiem',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TinTucIndexRoute = TinTucIndexRouteImport.update({
   id: '/tin-tuc/',
   path: '/tin-tuc/',
@@ -81,6 +87,7 @@ export interface FileRoutesByFullPath {
   '/khong-gian-van-hoa-ho-chi-minh': typeof KhongGianVanHoaHoChiMinhRoute
   '/lien-he': typeof LienHeRoute
   '/thu-vien': typeof ThuVienRoute
+  '/tim-kiem': typeof TimKiemRoute
   '/tin-tuc/$slug': typeof TinTucSlugRoute
   '/tin-tuc/': typeof TinTucIndexRoute
 }
@@ -93,6 +100,7 @@ export interface FileRoutesByTo {
   '/khong-gian-van-hoa-ho-chi-minh': typeof KhongGianVanHoaHoChiMinhRoute
   '/lien-he': typeof LienHeRoute
   '/thu-vien': typeof ThuVienRoute
+  '/tim-kiem': typeof TimKiemRoute
   '/tin-tuc/$slug': typeof TinTucSlugRoute
   '/tin-tuc': typeof TinTucIndexRoute
 }
@@ -106,6 +114,7 @@ export interface FileRoutesById {
   '/khong-gian-van-hoa-ho-chi-minh': typeof KhongGianVanHoaHoChiMinhRoute
   '/lien-he': typeof LienHeRoute
   '/thu-vien': typeof ThuVienRoute
+  '/tim-kiem': typeof TimKiemRoute
   '/tin-tuc/$slug': typeof TinTucSlugRoute
   '/tin-tuc/': typeof TinTucIndexRoute
 }
@@ -120,6 +129,7 @@ export interface FileRouteTypes {
     | '/khong-gian-van-hoa-ho-chi-minh'
     | '/lien-he'
     | '/thu-vien'
+    | '/tim-kiem'
     | '/tin-tuc/$slug'
     | '/tin-tuc/'
   fileRoutesByTo: FileRoutesByTo
@@ -132,6 +142,7 @@ export interface FileRouteTypes {
     | '/khong-gian-van-hoa-ho-chi-minh'
     | '/lien-he'
     | '/thu-vien'
+    | '/tim-kiem'
     | '/tin-tuc/$slug'
     | '/tin-tuc'
   id:
@@ -144,6 +155,7 @@ export interface FileRouteTypes {
     | '/khong-gian-van-hoa-ho-chi-minh'
     | '/lien-he'
     | '/thu-vien'
+    | '/tim-kiem'
     | '/tin-tuc/$slug'
     | '/tin-tuc/'
   fileRoutesById: FileRoutesById
@@ -157,6 +169,7 @@ export interface RootRouteChildren {
   KhongGianVanHoaHoChiMinhRoute: typeof KhongGianVanHoaHoChiMinhRoute
   LienHeRoute: typeof LienHeRoute
   ThuVienRoute: typeof ThuVienRoute
+  TimKiemRoute: typeof TimKiemRoute
   TinTucSlugRoute: typeof TinTucSlugRoute
   TinTucIndexRoute: typeof TinTucIndexRoute
 }
@@ -219,6 +232,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ThuVienRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/tim-kiem': {
+      id: '/tim-kiem'
+      path: '/tim-kiem'
+      fullPath: '/tim-kiem'
+      preLoaderRoute: typeof TimKiemRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/tin-tuc/': {
       id: '/tin-tuc/'
       path: '/tin-tuc'
@@ -245,6 +265,7 @@ const rootRouteChildren: RootRouteChildren = {
   KhongGianVanHoaHoChiMinhRoute: KhongGianVanHoaHoChiMinhRoute,
   LienHeRoute: LienHeRoute,
   ThuVienRoute: ThuVienRoute,
+  TimKiemRoute: TimKiemRoute,
   TinTucSlugRoute: TinTucSlugRoute,
   TinTucIndexRoute: TinTucIndexRoute,
 }
